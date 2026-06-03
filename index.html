@@ -321,6 +321,7 @@ function appendBotMsg(text, citations) {
   const ts  = document.createElement('div'); ts.className  = 'ts'; ts.textContent = now();
   row.appendChild(av); row.appendChild(bub); row.appendChild(ts);
   msgsEl.appendChild(row);
+  scrollToEl(row);
   if (citations && citations.length) {
     citations.forEach(c => {
       const cite = document.createElement('div'); cite.className = 'cite';
@@ -328,7 +329,6 @@ function appendBotMsg(text, citations) {
       msgsEl.appendChild(cite);
     });
   }
-  scrollToEl(row);
 }
 
 function appendUserMsg(text) {
