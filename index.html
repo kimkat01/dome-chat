@@ -374,7 +374,7 @@ window.onload = function() {
   appendBotMsg('こんにちは！相談をタップするか、直接ご質問ください。', []);
 };
 
-inpEl.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
+// Enterキーは改行のみ、送信はボタンのみ
 inpEl.addEventListener('input', () => { inpEl.style.height = '38px'; inpEl.style.height = Math.min(inpEl.scrollHeight, 90) + 'px'; });
 function ask(q) { inpEl.value = q; send(); }
 function now() { return new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }); }
