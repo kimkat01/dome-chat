@@ -254,6 +254,7 @@ const ORGS = {
     colorBorder: '#c7d2fe',
     characterImage: null, // DOME（どめくん画像）を使用
     botName: 'ドメボット',
+    orgName: '柴学園',
   },
   'yugakai': {
     color: '#2e8b57',       // グリーン系
@@ -262,6 +263,7 @@ const ORGS = {
     characterImage: YUGAKUN, // ゆうがくん画像
     characterEmoji: '🌿',     // フォールバック（通常は使われない）
     botName: 'ユウガボット',
+    orgName: '雄雅会',
   },
 };
 
@@ -306,6 +308,8 @@ const urlParams = new URLSearchParams(location.search);
 const enKey = urlParams.get('en') || 'yashio_akanemachi';
 const garden = GARDENS[enKey] || GARDENS['yashio_akanemachi'];
 const org = ORGS[garden.org] || ORGS['shibagakuen'];
+// チャット欄のアバター画像（法人ごとのキャラクター。未設定ならどめくん）
+const CHAR_IMG = org.characterImage || DOME;
 
 // ヘッダータイトル・カラー・キャラクターを書き換え
 document.addEventListener('DOMContentLoaded', () => {
@@ -342,6 +346,11 @@ document.addEventListener('DOMContentLoaded', () => {
       img.style.display = '';
     }
   }
+
+  // 規程ボタンのサブラベル（「柴学園規程」固定）を法人名に合わせて更新
+  document.querySelectorAll('.rule-btn-sub').forEach(el => {
+    el.textContent = org.orgName + '規程';
+  });
 });
 
 const WORKER_URL = "https://snowy-sky-07f1.cryk0289.workers.dev";
@@ -2669,8 +2678,24 @@ const KISOKU = `【しおどめ保育園八潮茜町 規程集】
 附 則
 この規程は、令和７年４月１日から施行する。なお、令和６年度の決算に係るものについ
 ては、改正後の規定にかかわらず、なお従前の例によるものとする。`;
-const kisokuReady = Promise.resolve();
-console.log('規程データ読み込み完了:', KISOKU.length, '文字');
+// 部門なしの園は garden.kisoku のURLから規程データを動的取得する
+// （取得できなかった場合のみ、フォールバックとして上のKISOKU＝八潮茜町データを使う）
+let DYNAMIC_KISOKU = null;
+const kisokuReady = (async () => {
+  if (garden.departments || !garden.kisoku) return; // 部門制の園・kisoku未設定の園は対象外
+  try {
+    const r = await fetch(garden.kisoku);
+    if (r.ok) {
+      DYNAMIC_KISOKU = await r.text();
+      console.log('規程データ読み込み完了（' + garden.title + '）:', DYNAMIC_KISOKU.length, '文字');
+    } else {
+      console.warn('規程データ取得失敗（status ' + r.status + '）。フォールバックを使用します。');
+    }
+  } catch (e) {
+    console.warn('規程データ取得エラー。フォールバックを使用します。', e);
+  }
+})();
+console.log('既定の規程データ（フォールバック）:', KISOKU.length, '文字');
 
 // ── 複数部門対応（しおどめの森など）──────────────────────────
 // garden.departments がある場合、規程関連の質問が来たら部門を確認する
@@ -2850,7 +2875,7 @@ function scrollToEl(el) { el.scrollIntoView({ block: 'start', behavior: 'smooth'
 function appendBotMsg(text, citations) {
   const row = document.createElement('div'); row.className = 'row bot';
   const av  = document.createElement('div'); av.className  = 'av';
-  av.innerHTML = '<img src="' + DOME + '" alt="どめ">';
+  av.innerHTML = '<img src="' + CHAR_IMG + '" alt="' + org.botName + '">';
   const bub = document.createElement('div'); bub.className = 'bubble'; bub.textContent = text;
   const ts  = document.createElement('div'); ts.className  = 'ts'; ts.textContent = now();
   row.appendChild(av); row.appendChild(bub); row.appendChild(ts);
@@ -2876,7 +2901,7 @@ function appendUserMsg(text) {
 function showTyping() {
   const row = document.createElement('div'); row.className = 'typing-row'; row.id = 'typing';
   const av  = document.createElement('div'); av.className  = 'av';
-  av.innerHTML = '<img src="' + DOME + '" alt="どめ">';
+  av.innerHTML = '<img src="' + CHAR_IMG + '" alt="' + org.botName + '">';
   const bub = document.createElement('div'); bub.className = 'typing-bub';
   bub.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
   row.appendChild(av); row.appendChild(bub);
@@ -2899,7 +2924,7 @@ async function send(forcedQuestion, skipDeptCheck) {
   inpEl.value = ''; inpEl.style.height = '38px';
   appendUserMsg(q); history.push({ role: 'user', content: q }); showTyping();
 
-  let kisokuText = KISOKU;
+  let kisokuText = DYNAMIC_KISOKU !== null ? DYNAMIC_KISOKU : KISOKU;
   let deptLabel = garden.title;
   if (garden.departments) {
     if (selectedDept) {
