@@ -271,15 +271,20 @@ const GARDENS = {
   'yashio_akanemachi': {
     org: 'shibagakuen',
     title: 'しおどめ保育園八潮茜町専用チャットボット',
-    kisoku: 'https://kimkat01.github.io/dome-chat/kisoku_yashio_akanemachi.txt',
+    departments: {
+      '正規職員': 'https://kimkat01.github.io/dome-chat/kisoku_yashio_akanemachi_seiki.txt',
+      'パートタイム職員': 'https://kimkat01.github.io/dome-chat/kisoku_yashio_akanemachi_part.txt',
+    },
   },
   'shiodome_no_mori': {
     org: 'shibagakuen',
     title: '認定こども園しおどめの森専用チャットボット',
-    // 複数部門あり：規程関連の質問が来たら部門を確認する
+    // 部門（保育園部／幼稚園部）×雇用形態（正規職員／パートタイム職員）の組み合わせで選択
     departments: {
-      '保育園部': 'https://kimkat01.github.io/dome-chat/kisoku_shiodome_no_mori_hoiku.txt',
-      '幼稚園部': 'https://kimkat01.github.io/dome-chat/kisoku_shiodome_no_mori_youchien.txt',
+      '保育園部・正規職員': 'https://kimkat01.github.io/dome-chat/kisoku_shiodome_no_mori_hoiku_seiki.txt',
+      '保育園部・パートタイム職員': 'https://kimkat01.github.io/dome-chat/kisoku_shiodome_no_mori_hoiku_part.txt',
+      '幼稚園部・正規職員': 'https://kimkat01.github.io/dome-chat/kisoku_shiodome_no_mori_youchien_seiki.txt',
+      '幼稚園部・パートタイム職員': 'https://kimkat01.github.io/dome-chat/kisoku_shiodome_no_mori_youchien_part.txt',
     },
   },
   // 雄雅会の園を追加する例（規程ファイルアップロード後）：
