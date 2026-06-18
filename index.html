@@ -288,8 +288,10 @@ const GARDENS = {
   'moriya_shiodome': {
     org: 'yugakai',
     title: '守谷しおどめ保育園専用チャットボット',
-    kisoku: 'https://kimkat01.github.io/dome-chat/kisoku_moriya_shiodome.txt',
-    // 規程ファイルアップロード後にkisokuのURLが有効になります
+    departments: {
+      '正規職員': 'https://kimkat01.github.io/dome-chat/kisoku_moriya_shiodome_seiki.txt',
+      'パートタイム職員': 'https://kimkat01.github.io/dome-chat/kisoku_moriya_shiodome_part.txt',
+    },
   },
   'yashio_shiodome': {
     org: 'yugakai',
