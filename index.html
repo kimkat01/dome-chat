@@ -294,7 +294,11 @@ const GARDENS = {
   'yashio_shiodome': {
     org: 'yugakai',
     title: '八潮しおどめ保育園専用チャットボット',
-    kisoku: 'https://kimkat01.github.io/dome-chat/kisoku_yashio_shiodome.txt',
+    // 正規職員／パートタイム職員で規程が異なるため、しおどめの森と同様に選択式にする
+    departments: {
+      '正規職員': 'https://kimkat01.github.io/dome-chat/kisoku_yashio_shiodome_seiki.txt',
+      'パートタイム職員': 'https://kimkat01.github.io/dome-chat/kisoku_yashio_shiodome_part.txt',
+    },
   },
   'shiodome_nakayoshi': {
     org: 'yugakai',
@@ -2728,7 +2732,7 @@ function showDeptChoice(originalQuestion) {
   wrap.className = 'submenu-wrap';
   const label = document.createElement('div');
   label.className = 'submenu-label';
-  label.textContent = 'どちらの部門についてのご質問ですか？';
+  label.textContent = 'どちらに該当しますか？';
   wrap.appendChild(label);
   const btns = document.createElement('div');
   btns.className = 'submenu-btns';
