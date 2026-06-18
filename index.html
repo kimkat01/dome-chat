@@ -2955,7 +2955,7 @@ ${kisokuText}
     const resp = await fetch(WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1500, system: sys, messages: history })
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1500, system: sys, messages: history })
     });
     const data = await resp.json(); removeTyping();
     if (data.error) { appendBotMsg('エラーが発生しました：' + data.error.message, []); return; }
