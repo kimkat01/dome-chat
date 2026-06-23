@@ -296,7 +296,6 @@ const GARDENS = {
     departments: {
       '正規職員': 'https://kimkat01.github.io/dome-chat/kisoku_moriya_shiodome_seiki.txt',
       'パートタイム職員': 'https://kimkat01.github.io/dome-chat/kisoku_moriya_shiodome_part.txt',
-      '経理規程': 'https://kimkat01.github.io/dome-chat/kisoku_yugakai_keiri.txt',
     },
   },
   'yashio_shiodome': {
@@ -306,7 +305,6 @@ const GARDENS = {
     departments: {
       '正規職員': 'https://kimkat01.github.io/dome-chat/kisoku_yashio_shiodome_seiki.txt',
       'パートタイム職員': 'https://kimkat01.github.io/dome-chat/kisoku_yashio_shiodome_part.txt',
-      '経理規程': 'https://kimkat01.github.io/dome-chat/kisoku_yugakai_keiri.txt',
     },
   },
   'shiodome_nakayoshi': {
@@ -343,14 +341,6 @@ const GARDENS = {
     title: 'しおどめ保育園つくば専用チャットボット',
     // パートタイム職員就業規則・給与規程は未受領のため、正規職員就業規則のみ暫定登録
     kisoku: 'https://kimkat01.github.io/dome-chat/kisoku_tsukuba_seiki.txt',
-  },
-  'shokibo': {
-    org: 'shibagakuen',
-    title: 'しおどめ保育園小規模認可専用チャットボット',
-    departments: {
-      '正規職員': 'https://kimkat01.github.io/dome-chat/kisoku_shokibo_seiki.txt',
-      'パートタイム職員': 'https://kimkat01.github.io/dome-chat/kisoku_shokibo_part.txt',
-    },
   },
 };
 
@@ -2755,7 +2745,7 @@ let deptKisokuCache = {};      // 部門ごとのfetch結果キャッシュ
 let pendingQuestion = null;    // 部門確認中に保留している元の質問
 
 function isKisokuQuestion(q) {
-  return /就業規則|給与規程|給与規則|労働条件|休暇|有給|残業|賞与|退職金|懲戒|育児休業|介護休業|経理規程|勘定科目|固定資産|保存年限|保管年数|減価償却|引当金|予算書|決算|帳簿|出納|契約|有価証券/.test(q);
+  return /就業規則|給与規程|給与規則|労働条件|休暇|有給|残業|賞与|退職金|懲戒|育児休業|介護休業|経理規程/.test(q);
 }
 
 async function fetchDeptKisoku(deptName) {
@@ -2999,7 +2989,15 @@ ${kisokuText}
 2. 根拠となる法令・規則・ガイドライン等があれば必ず引用すること
 3. 深刻な問題（虐待・重大事故・刑事事件等）は必ず専門家・行政への相談を促すこと
 4. 文体は「です・ます」調で統一すること
-5. 必ず以下のJSONのみで回答（前後にテキスト不可）：
+5. 回答の末尾に、以下の基準で専門家・相談先への誘導文を1つだけ付加すること。ただし、就業規則・給与規程の条文内容を単純に確認・説明するだけの質問（例：「〇〇手当の金額は？」「年次有給休暇の付与日数は？」など）には付けないこと。
+   【誘導文の判断基準】
+   - 労務・懲戒・勤怠・雇用契約・就業規則の解釈・適用に関する判断が必要な場合 → 「詳しくは必ず社労士にご確認ください。」
+   - 法的トラブル・訴訟リスク・ハラスメント対応・刑事事件・権利侵害等、法的判断が必要な場合 → 「詳しくは必ず弁護士にご確認ください。」
+   - 税務・経理・会計処理・財務に関する判断が必要な場合 → 「詳しくは必ず税理士にご確認ください。」
+   - 行政手続・認可・監査・補助金・法令解釈等、行政対応が必要な場合 → 「詳しくは必ず管轄自治体にご確認ください。」
+   - 法人内部の方針・組織判断・稟議等が必要な場合 → 「詳しくは必ず法人（本部）にご確認ください。」
+   - 複数の専門家が関係する場合は、最も重要度の高い専門家1つのみを選ぶこと
+6. 必ず以下のJSONのみで回答（前後にテキスト不可）：
 {"answer":"回答本文（改行は\\nで表現）","citations":[{"text":"根拠・参考となる内容","source":"参照元（就業規則・労働基準法・内閣府ガイドライン等）"}]}`;
 
   try {
