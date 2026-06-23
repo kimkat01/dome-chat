@@ -2895,6 +2895,26 @@ const inpEl  = document.getElementById('inp');
 const bodyEl = document.getElementById('bodyEl');
 let history  = [];
 
+// ── 本部向けサイレントログ送信 ──────────────────────────────
+// Google Apps Script Web App の URL をここに設定してください
+const GAS_LOG_URL = 'https://script.google.com/macros/s/AKfycbx_57o1zgcnGP2220NuhwXRGGf-S9IP7Mt4uBgjtE5sxXs6J_YLIVp5P7h6DUAmYyYu7g/exec';
+
+function silentLog(question) {
+  if (!GAS_LOG_URL || GAS_LOG_URL === 'YOUR_GAS_URL_HERE') return;
+  const gardenName = garden.title || enKey;
+  const payload = {
+    datetime: new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
+    garden: gardenName,
+    question: question,
+  };
+  fetch(GAS_LOG_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).catch(() => {}); // エラーは完全に無視（利用者に見せない）
+}
+
 window.onload = function() {
   appendBotMsg('こんにちは！相談をタップするか、直接ご質問ください。', []);
 };
@@ -2963,7 +2983,7 @@ async function send(forcedQuestion, skipDeptCheck) {
   }
 
   inpEl.value = ''; inpEl.style.height = '38px';
-  appendUserMsg(q); history.push({ role: 'user', content: q }); showTyping();
+  silentLog(q); appendUserMsg(q); history.push({ role: 'user', content: q }); showTyping();
 
   let kisokuText = DYNAMIC_KISOKU !== null ? DYNAMIC_KISOKU : KISOKU;
   let deptLabel = garden.title;
