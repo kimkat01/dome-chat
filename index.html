@@ -342,6 +342,14 @@ const GARDENS = {
     // パートタイム職員就業規則・給与規程は未受領のため、正規職員就業規則のみ暫定登録
     kisoku: 'https://kimkat01.github.io/dome-chat/kisoku_tsukuba_seiki.txt',
   },
+  'fureai_yashio': {
+    org: 'shibagakuen',
+    title: 'ふれあいしおどめ保育園八潮専用チャットボット',
+    departments: {
+      '正規職員': 'https://kimkat01.github.io/dome-chat/kisoku_fureai_yashio_seiki.txt',
+      'パートタイム職員': 'https://kimkat01.github.io/dome-chat/kisoku_fureai_yashio_part.txt',
+    },
+  },
 };
 
 // URLパラメータ ?en=xxx から園を特定
@@ -2937,7 +2945,8 @@ function appendBotMsg(text, citations) {
   const row = document.createElement('div'); row.className = 'row bot';
   const av  = document.createElement('div'); av.className  = 'av';
   av.innerHTML = '<img src="' + CHAR_IMG + '" alt="' + org.botName + '">';
-  const bub = document.createElement('div'); bub.className = 'bubble'; bub.textContent = text;
+  const bub = document.createElement('div'); bub.className = 'bubble';
+  bub.innerHTML = text.split('\n').map(l => esc(l)).join('<br>');
   const ts  = document.createElement('div'); ts.className  = 'ts'; ts.textContent = now();
   row.appendChild(av); row.appendChild(bub); row.appendChild(ts);
   msgsEl.appendChild(row);
@@ -3024,7 +3033,7 @@ ${kisokuText}
     const raw   = (data.content||[]).map(b=>b.text||'').join('');
     const clean = raw.replace(/^```json\s*/,'').replace(/\s*```$/,'').trim();
     let parsed; try { parsed = JSON.parse(clean); } catch(e) { parsed = {answer:raw,citations:[]}; }
-    const ans = parsed.answer || raw;
+    const ans = (parsed.answer || raw).replace(/\\n/g, '\n');
     appendBotMsg(ans, parsed.citations||[]); history.push({ role: 'assistant', content: ans });
   } catch(err) {
     removeTyping(); appendBotMsg('エラーが発生しました。\n' + err.message, []);
