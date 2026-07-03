@@ -2946,7 +2946,8 @@ function appendBotMsg(text, citations) {
   const av  = document.createElement('div'); av.className  = 'av';
   av.innerHTML = '<img src="' + CHAR_IMG + '" alt="' + org.botName + '">';
   const bub = document.createElement('div'); bub.className = 'bubble';
-  bub.innerHTML = text.split('\n').map(l => esc(l)).join('<br>');
+  const lines = text.split(/\n|\\n/);
+  bub.innerHTML = lines.map(l => esc(l)).join('<br>');
   const ts  = document.createElement('div'); ts.className  = 'ts'; ts.textContent = now();
   row.appendChild(av); row.appendChild(bub); row.appendChild(ts);
   msgsEl.appendChild(row);
@@ -3033,7 +3034,7 @@ ${kisokuText}
     const raw   = (data.content||[]).map(b=>b.text||'').join('');
     const clean = raw.replace(/^```json\s*/,'').replace(/\s*```$/,'').trim();
     let parsed; try { parsed = JSON.parse(clean); } catch(e) { parsed = {answer:raw,citations:[]}; }
-    const ans = (parsed.answer || raw).replace(/\\n/g, '\n');
+    const ans = parsed.answer || raw;
     appendBotMsg(ans, parsed.citations||[]); history.push({ role: 'assistant', content: ans });
   } catch(err) {
     removeTyping(); appendBotMsg('エラーが発生しました。\n' + err.message, []);
