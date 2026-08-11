@@ -2976,7 +2976,9 @@ function silentLog(question) {
 }
 
 window.onload = function() {
-  appendBotMsg('こんにちは！相談をタップするか、直接ご質問ください。', []);
+  appendBotMsg('こんにちは！相談をタップするか、直接ご質問ください。', [], true);
+  // 初期表示はページ最上部（ヘッダー・相談カード）を見せる
+  if (bodyEl) bodyEl.scrollTop = 0;
 };
 
 // 規程ボタンの横スライド
@@ -2993,7 +2995,7 @@ function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 function scrollBottom() { bodyEl.scrollTop = bodyEl.scrollHeight; }
 function scrollToEl(el) { el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
 
-function appendBotMsg(text, citations) {
+function appendBotMsg(text, citations, noScroll) {
   const row = document.createElement('div'); row.className = 'row bot';
   const av  = document.createElement('div'); av.className  = 'av';
   av.innerHTML = '<img src="' + CHAR_IMG + '" alt="' + org.botName + '">';
@@ -3003,7 +3005,7 @@ function appendBotMsg(text, citations) {
   const ts  = document.createElement('div'); ts.className  = 'ts'; ts.textContent = now();
   row.appendChild(av); row.appendChild(bub); row.appendChild(ts);
   msgsEl.appendChild(row);
-  scrollToEl(row);
+  if (!noScroll) scrollToEl(row);
   if (citations && citations.length) {
     citations.forEach(c => {
       const cite = document.createElement('div'); cite.className = 'cite';
