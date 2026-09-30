@@ -432,6 +432,12 @@ const GARDENS = {
 // staff-dashboard/docs/manuals.js の GARDEN_HOMES（全ツール共通の戻り先一覧）に従う。
 function domeHomeUrl(){
   var g = (typeof garden !== 'undefined' && garden && garden.gardenName) || '';
+  // 園名（gardenName）を書いていない園は、開いたときの園キー（?en=）をそのまま使う
+  //   職員ダッシュボードは ?garden=moriya_shiodome のような英字の園キーでも開ける（園マスタ gardens.js で園名に直す）
+  if(!g){
+    var en = new URLSearchParams(location.search).get('en') || '';
+    if(en && typeof GARDENS !== 'undefined' && GARDENS[en]) g = en;
+  }
   var homes = (typeof GARDEN_HOMES !== 'undefined' && GARDEN_HOMES) || {};
   var base = (g && homes[g]) || 'https://kimkat01.github.io/staff-dashboard/';
   return base + (g ? ('?garden=' + encodeURIComponent(g)) : '');
