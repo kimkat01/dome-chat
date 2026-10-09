@@ -3069,14 +3069,22 @@ function getViewer() {
 // 画面に { や ":" などの記号が出ないようにする
 function parseBotReply(raw) {
   let t = String(raw || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
-  const a = t.indexOf('{'), b = t.lastIndexOf('}');
-  if (a >= 0 && b > a) {
-    try {
-      const o = JSON.parse(t.slice(a, b + 1));
-      if (o && typeof o.answer === 'string') {
-        return { answer: cleanAnswer(o.answer), citations: Array.isArray(o.citations) ? o.citations : [] };
-      }
-    } catch (e) {}
+  const a = t.indexOf('{');
+  if (a >= 0) {
+    // JSONの後ろに文章が付いていることがあるので、閉じカッコの位置を後ろから順に試す
+    let b = t.lastIndexOf('}'), tries = 0;
+    while (b > a && tries < 30) {
+      try {
+        const o = JSON.parse(t.slice(a, b + 1));
+        if (o && typeof o.answer === 'string') {
+          // JSONの外に付いていた文章（「詳しくは必ず法人（本部）に…」など）も回答の末尾に残す
+          const tail = t.slice(b + 1).replace(/^[\s"}\]]+|[\s"}\]]+$/g, '').trim();
+          const ans = tail && o.answer.indexOf(tail) < 0 ? o.answer + '\n\n' + tail : o.answer;
+          return { answer: cleanAnswer(ans), citations: Array.isArray(o.citations) ? o.citations : [] };
+        }
+      } catch (e) {}
+      b = t.lastIndexOf('}', b - 1); tries++;
+    }
   }
   // JSONとして読めない（途中で切れた等）→ "answer":"…" の中身だけを取り出す
   const m = t.match(/"answer"\s*:\s*"((?:[^"\\]|\\.)*)/);
