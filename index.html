@@ -3063,16 +3063,25 @@ function getViewer() {
   return { name: names.join('／') + '（候補）', loginId: '' };
 }
 
-function silentLog(question) {
+// 質問した時刻（記録は回答が出てから1行で送るため、質問時の時刻をここで覚えておく）
+function nowJST() { return new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }); }
+
+// 本部ログ：質問と、ドメボットの回答（根拠つき）を1行で記録する（2026-10 回答も記録）
+function silentLog(question, answer, askedAt, citations) {
   if (!GAS_LOG_URL || GAS_LOG_URL === 'YOUR_GAS_URL_HERE') return;
   const gardenName = garden.title || enKey;
   const viewer = getViewer();
+  let ansText = answer || '';
+  if (citations && citations.length) {
+    ansText += '\n\n【根拠】\n' + citations.map(c => '・' + (c.source || '') + (c.text ? '：' + c.text : '')).join('\n');
+  }
   const payload = {
-    datetime: new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
+    datetime: askedAt || nowJST(),
     garden: gardenName,
     question: question,
     name: viewer.name,
     loginId: viewer.loginId,
+    answer: ansText,
   };
   fetch(GAS_LOG_URL, {
     method: 'POST',
@@ -3154,7 +3163,7 @@ async function send(forcedQuestion, skipDeptCheck) {
   }
 
   inpEl.value = ''; inpEl.style.height = '38px';
-  silentLog(q); appendUserMsg(q); history.push({ role: 'user', content: q }); showTyping();
+  const askedAt = nowJST(); appendUserMsg(q); history.push({ role: 'user', content: q }); showTyping();
 
   let kisokuText = DYNAMIC_KISOKU !== null ? DYNAMIC_KISOKU : KISOKU;
   let deptLabel = garden.title;
@@ -3197,14 +3206,16 @@ ${kisokuText}${kasuharaPart}
       body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1500, system: sys, messages: history })
     });
     const data = await resp.json(); removeTyping();
-    if (data.error) { appendBotMsg('エラーが発生しました：' + data.error.message, []); return; }
+    if (data.error) { appendBotMsg('エラーが発生しました：' + data.error.message, []); silentLog(q, '（エラー）' + data.error.message, askedAt); return; }
     const raw   = (data.content||[]).map(b=>b.text||'').join('');
     const clean = raw.replace(/^```json\s*/,'').replace(/\s*```$/,'').trim();
     let parsed; try { parsed = JSON.parse(clean); } catch(e) { parsed = {answer:raw,citations:[]}; }
     const ans = parsed.answer || raw;
     appendBotMsg(ans, parsed.citations||[]); history.push({ role: 'assistant', content: ans });
+    silentLog(q, ans, askedAt, parsed.citations||[]);
   } catch(err) {
     removeTyping(); appendBotMsg('エラーが発生しました。\n' + err.message, []);
+    silentLog(q, '（エラー）' + err.message, askedAt);
   }
 }
 </script>
