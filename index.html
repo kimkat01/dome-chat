@@ -143,13 +143,14 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh}
 @keyframes bop{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
 
 /* ── 入力欄 ── */
-.inp-area{padding:8px 12px 12px;border-top:1px solid #e5e9f2;background:#fff;display:flex;gap:8px;align-items:flex-end;flex-shrink:0}
-.inp-area textarea{flex:1;resize:none;border:2px solid var(--main-color);border-radius:20px;padding:8px 14px;font-size:13px;font-family:inherit;line-height:1.5;height:38px;max-height:90px;overflow-y:hidden;background:#f0f4ff;color:#1a1a1a;font-weight:500}
+.inp-area{position:relative;padding:8px 12px 12px;border-top:1px solid #e5e9f2;background:#fff;display:flex;align-items:flex-end;flex-shrink:0}
+.inp-area textarea{flex:1;resize:none;border:2px solid var(--main-color);border-radius:20px;padding:8px 48px 8px 14px;font-size:13px;font-family:inherit;line-height:1.5;height:38px;max-height:90px;overflow-y:hidden;background:#f0f4ff;color:#1a1a1a;font-weight:500}
 .inp-area textarea::placeholder{color:#7b93d4;font-weight:400}
 .inp-area textarea:focus{outline:none;background:#fff;box-shadow:0 0 0 3px rgba(65,105,225,.15)}
-.sbtn{width:38px;height:38px;border-radius:50%;background:var(--main-color);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s}
+/* 送信ボタン（紙飛行機）は入力枠の右下の内側に重ねる */
+.sbtn{position:absolute;right:17px;bottom:17px;width:28px;height:28px;border-radius:50%;background:var(--main-color);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s}
 .sbtn:hover{opacity:.85;transform:scale(1.05)}
-.sbtn svg{width:15px;height:15px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.sbtn svg{width:13px;height:13px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 </style>
 </head>
 <body>
@@ -3063,6 +3064,41 @@ function getViewer() {
   return { name: names.join('／') + '（候補）', loginId: '' };
 }
 
+// ── AIの返事（JSON）から回答文と根拠を取り出す（2026-10）──────────────
+// 回答が長くて途中で切れた場合や、JSONの前後に文字が付いた場合でも、
+// 画面に { や ":" などの記号が出ないようにする
+function parseBotReply(raw) {
+  let t = String(raw || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
+  const a = t.indexOf('{'), b = t.lastIndexOf('}');
+  if (a >= 0 && b > a) {
+    try {
+      const o = JSON.parse(t.slice(a, b + 1));
+      if (o && typeof o.answer === 'string') {
+        return { answer: cleanAnswer(o.answer), citations: Array.isArray(o.citations) ? o.citations : [] };
+      }
+    } catch (e) {}
+  }
+  // JSONとして読めない（途中で切れた等）→ "answer":"…" の中身だけを取り出す
+  const m = t.match(/"answer"\s*:\s*"((?:[^"\\]|\\.)*)/);
+  if (m) {
+    let body = m[1];
+    try { body = JSON.parse('"' + body.replace(/\\$/, '') + '"'); }
+    catch (e) { body = body.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\'); }
+    return { answer: cleanAnswer(body), citations: [] };
+  }
+  return { answer: cleanAnswer(t), citations: [] };
+}
+// 回答文から Markdown の記号（** や ### や ---）を取り除いて読みやすくする
+function cleanAnswer(s) {
+  return String(s || '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*\*/g, '')
+    .replace(/^\s*#{1,6}\s*/gm, '')
+    .replace(/^\s*[-─━]{3,}\s*$/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 // 質問した時刻（記録は回答が出てから1行で送るため、質問時の時刻をここで覚えておく）
 function nowJST() { return new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }); }
 
@@ -3195,6 +3231,7 @@ ${kisokuText}${kasuharaPart}
 2. 根拠となる法令・規則・ガイドライン等があれば必ず引用すること
 3. 深刻な問題（虐待・重大事故・刑事事件等）は必ず専門家・行政への相談を促すこと
 4. 文体は「です・ます」調で統一すること
+4-2. 回答本文に Markdown 記号（** や ### や ---）は使わないこと。見出しは「■」や「1.」で表すこと
 5. 回答の末尾に「詳しくは必ず法人（本部）にご確認ください。」と付加すること。ただし、就業規則・給与規程の条文内容を単純に確認・説明するだけの質問（例：「〇〇手当の金額は？」「年次有給休暇の付与日数は？」など）には付けないこと。
 6. 必ず以下のJSONのみで回答（前後にテキスト不可）：
 {"answer":"回答本文（改行は\\nで表現）","citations":[{"text":"根拠・参考となる内容","source":"参照元（就業規則・労働基準法・内閣府ガイドライン等）"}]}`;
@@ -3203,14 +3240,13 @@ ${kisokuText}${kasuharaPart}
     const resp = await fetch(WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1500, system: sys, messages: history })
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: sys, messages: history })
     });
     const data = await resp.json(); removeTyping();
     if (data.error) { appendBotMsg('エラーが発生しました：' + data.error.message, []); silentLog(q, '（エラー）' + data.error.message, askedAt); return; }
     const raw   = (data.content||[]).map(b=>b.text||'').join('');
-    const clean = raw.replace(/^```json\s*/,'').replace(/\s*```$/,'').trim();
-    let parsed; try { parsed = JSON.parse(clean); } catch(e) { parsed = {answer:raw,citations:[]}; }
-    const ans = parsed.answer || raw;
+    const parsed = parseBotReply(raw);
+    const ans = parsed.answer;
     appendBotMsg(ans, parsed.citations||[]); history.push({ role: 'assistant', content: ans });
     silentLog(q, ans, askedAt, parsed.citations||[]);
   } catch(err) {
