@@ -119,6 +119,10 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh}
 .rule-btn-text{text-align:left}
 .rule-btn-title{font-size:13px;font-weight:700;color:var(--main-color)}
 .rule-btn-sub{font-size:10px;color:#7b93d4;margin-top:1px}
+.manual-sec{padding-top:0}
+.manual-sec .rule-hdr{min-height:22px}
+.manual-sec .rule-btn{width:auto;min-width:136px}
+.manual-sec .rule-btn-sub{white-space:nowrap}
 
 /* ── チャットエリア ── */
 .msgs{flex:1;padding:10px 14px;display:flex;flex-direction:column;gap:10px;min-height:80px}
@@ -238,11 +242,20 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh}
             <div class="rule-btn-sub">柴学園規程</div>
           </div>
         </button>
-        <button class="rule-btn" onclick="ask('カスタマーハラスメント規程について教えてください。')">
+      </div>
+    </div>
+
+    <!-- マニュアルから探す -->
+    <div class="rule-sec manual-sec">
+      <div class="rule-hdr">
+        <span>📘 マニュアルから探す</span>
+      </div>
+      <div class="rule-btns" id="manualBtns">
+        <button class="rule-btn" onclick="ask('カスタマーハラスメント防止マニュアルについて教えてください。')">
           <div class="rule-btn-icon">🛡️</div>
           <div class="rule-btn-text">
-            <div class="rule-btn-title">カスハラ規程</div>
-            <div class="rule-btn-sub rule-btn-sub-kasuhara">柴学園規程</div>
+            <div class="rule-btn-title">カスハラ防止</div>
+            <div class="rule-btn-sub manual-btn-sub">柴学園マニュアル</div>
           </div>
         </button>
       </div>
@@ -507,7 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 規程ボタンのサブラベル（「柴学園規程」固定）を法人名に合わせて更新
   document.querySelectorAll('.rule-btn-sub').forEach(el => {
-    el.textContent = org.orgName + '規程';
+    el.textContent = org.orgName + (el.classList.contains('manual-btn-sub') ? 'マニュアル' : '規程');
   });
 });
 
@@ -2874,7 +2887,7 @@ async function fetchKasuhara() {
     const r = await fetch(url);
     kasuharaCache = r.ok ? await r.text() : '';
   } catch (e) {
-    console.warn('カスハラ規程読み込み失敗:', e);
+    console.warn('カスハラ防止マニュアル読み込み失敗:', e);
     kasuharaCache = '';
   }
   return kasuharaCache;
