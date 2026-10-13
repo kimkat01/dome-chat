@@ -155,6 +155,7 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh}
 .ans-sec.general .ans-sec-hd{color:#4b5563}
 .ans-sec-note{font-size:10.5px;color:#6b7280;line-height:1.5;margin-bottom:4px}
 .ans-sec-empty{font-size:12px;color:#6b7280}
+.ans-lead{font-size:12.5px;font-weight:700;color:#92400e;background:#fffbeb;border:1.5px solid #fcd34d;border-radius:10px;padding:7px 10px;margin-bottom:6px;line-height:1.6}
 .row.bot .bubble.two{max-width:86%}
 
 /* タイピング */
@@ -3264,20 +3265,29 @@ function appendBotMsg(text, citations, noScroll) {
 }
 
 // 質問への回答（2区分）：①法人の規程・マニュアルに沿った回答 ②一般的な情報
+// 一般的な情報だけの回答のとき、最初に入れる一文
+function generalLead() {
+  return '下記は一般的な情報にもとづく回答です。' + org.orgName + 'の規程・マニュアルによる回答ではありませんので、ご注意ください。';
+}
 function appendTwoPartAnswer(parsed) {
   const row = document.createElement('div'); row.className = 'row bot';
   const av  = document.createElement('div'); av.className  = 'av';
   av.innerHTML = '<img src="' + CHAR_IMG + '" alt="' + org.botName + '">';
   const bub = document.createElement('div'); bub.className = 'bubble two';
   let html = '<div class="ans-box">';
-  html += '<div class="ans-sec corp"><div class="ans-sec-hd">🏫 ① ' + esc(org.orgName) + 'の規程・マニュアルに沿った回答</div>';
-  html += parsed.corp
-    ? '<div>' + textToHtml(parsed.corp) + '</div>'
-    : '<div class="ans-sec-empty">' + esc(org.orgName) + 'の規程・マニュアルには、この内容についての定めが見当たりませんでした。</div>';
-  html += '</div>';
-  if (parsed.general) {
-    html += '<div class="ans-sec general"><div class="ans-sec-hd">🌐 ② 一般的な情報</div>' +
-      '<div class="ans-sec-note">※法令・行政資料などにもとづく一般的な内容です。' + esc(org.orgName) + 'の方針・マニュアルではありません。</div>' +
+  if (parsed.corp) {
+    // 法人の規程・マニュアルに定めがある場合：①→②の順に表示
+    html += '<div class="ans-sec corp"><div class="ans-sec-hd">🏫 ① ' + esc(org.orgName) + 'の規程・マニュアルに沿った回答</div>' +
+      '<div>' + textToHtml(parsed.corp) + '</div></div>';
+    if (parsed.general) {
+      html += '<div class="ans-sec general"><div class="ans-sec-hd">🌐 ② 一般的な情報</div>' +
+        '<div class="ans-sec-note">※法令・行政資料などにもとづく一般的な内容です。' + esc(org.orgName) + 'の方針・マニュアルではありません。</div>' +
+        '<div>' + textToHtml(parsed.general) + '</div></div>';
+    }
+  } else {
+    // 一般的な質問（規程・マニュアルに定めがない）場合：最初に注意の一文を入れる
+    html += '<div class="ans-lead">' + esc(generalLead()) + '</div>';
+    html += '<div class="ans-sec general"><div class="ans-sec-hd">🌐 一般的な情報</div>' +
       '<div>' + textToHtml(parsed.general) + '</div></div>';
   }
   html += '</div>';
@@ -3383,8 +3393,9 @@ D. Web検索が使える場合は、こども家庭庁・厚生労働省・文�
     const raw    = finalText(data.content || []);
     const parsed = parseBotReply(raw);
     appendTwoPartAnswer(parsed);
-    const logText = '【①' + org.orgName + 'の規程・マニュアル】\n' + (parsed.corp || '（該当する定めなし）') +
-                    '\n\n【②一般的な情報】\n' + (parsed.general || '');
+    const logText = parsed.corp
+      ? '【①' + org.orgName + 'の規程・マニュアル】\n' + parsed.corp + '\n\n【②一般的な情報】\n' + (parsed.general || '')
+      : generalLead() + '\n\n【一般的な情報】\n' + (parsed.general || '');
     history.push({ role: 'assistant', content: logText });
     silentLog(q, logText, askedAt, parsed.citations || []);
   } catch(err) {
