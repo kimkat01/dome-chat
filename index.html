@@ -138,6 +138,24 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh}
 .cite-lbl{font-size:10px;color:var(--main-color);font-weight:600;margin-bottom:2px}
 .cite-txt{font-size:11.5px;color:#1e3a8a;line-height:1.6}
 .cite-src{font-size:10px;color:#6b7fc7;margin-top:2px}
+.cite-link{display:inline-block;margin-top:4px;font-size:11px;font-weight:700;color:var(--main-color);text-decoration:none;border:1px solid var(--main-color-border);background:#fff;border-radius:999px;padding:2px 9px}
+.cite-link.search{font-weight:600;color:#6b7280;border-color:#d1d5db}
+.cite.general{background:#f6f7f9;border-left-color:#9ca3af}
+.cite.general .cite-lbl{color:#4b5563}
+.cite.general .cite-txt{color:#374151}
+.cite.general .cite-src{color:#6b7280}
+/* 回答の2区分（2026-10）：①法人の規程・マニュアル ②一般的な情報 */
+.ans-box{width:100%}
+.ans-sec{border-radius:10px;padding:7px 10px 8px;margin-top:6px}
+.ans-sec:first-child{margin-top:0}
+.ans-sec-hd{font-size:11px;font-weight:800;margin-bottom:3px;letter-spacing:.02em}
+.ans-sec.corp{background:var(--main-color-light);border:1.5px solid var(--main-color-border)}
+.ans-sec.corp .ans-sec-hd{color:var(--main-color)}
+.ans-sec.general{background:#f6f7f9;border:1.5px solid #e5e7eb}
+.ans-sec.general .ans-sec-hd{color:#4b5563}
+.ans-sec-note{font-size:10.5px;color:#6b7280;line-height:1.5;margin-bottom:4px}
+.ans-sec-empty{font-size:12px;color:#6b7280}
+.row.bot .bubble.two{max-width:86%}
 
 /* タイピング */
 .typing-row{display:flex;align-items:flex-end;gap:6px}
@@ -184,7 +202,7 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh}
 
     <!-- よく使う相談 -->
     <div class="sec-hdr">
-      <div class="sec-hdr-left">⚡ よく使う相談</div>
+      <div class="sec-hdr-left">⚡ 相談項目例</div>
       <div class="sec-hdr-right">&#xbb; スライドできます</div>
     </div>
 
@@ -207,7 +225,7 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh}
 
     <div class="page-dots" id="pageDots">
       <div class="nav-arrow" id="navPrev" onclick="slideCat(-1)">◀</div>
-      <div class="page-num" id="pageNum">1 / 6</div>
+      <div class="page-num" id="pageNum">1 / 3</div>
       <div class="nav-arrow" id="navNext" onclick="slideCat(1)">▶</div>
     </div>
 
@@ -2948,8 +2966,8 @@ const SUBMENUS = {
   '給食・食育': ['アレルギー対応給食', '食育計画', '衛生管理・HACCP', '食物アレルギー事故防止', '離乳食・乳幼児食', '保護者への食情報発信', 'その他'],
   '労務管理・職員': ['シフト・人員配置', '有給・残業・勤怠', '就業規則・育休産休', 'ハラスメント対応', '採用・面接', '離職防止・定着', '職員間トラブル', '人手不足対応', 'その他'],
   '保護者対応': ['クレーム対応', '連絡帳・おたより文例', '保護者会・個人面談', '虐待通報・対応', 'モンスターペアレント対応', '苦情解決制度', '特別支援の保護者対応', 'その他'],
-  '行政・監査・法令': ['監査準備・自己評価', '行政提出物・申請', '第三者評価対応', '処遇改善加算申請', '指導監査への対応', '法令改正情報', 'その他'],
-  '経理・財務運営': ['処遇改善加算Ⅰ・Ⅱ・Ⅲ', '補助金申請・精算', '予算管理', '保育料・延長料金', '公定価格・施設型給付費', 'その他'],
+  '行政・監査・法令': ['監査準備・自己評価', '行政提出物・申請', '第三者評価対応', '処遇改善等加算の申請', '指導監査への対応', '法令改正情報', 'その他'],
+  '経理・財務運営': ['処遇改善等加算（区分1〜3）', '補助金申請・精算', '予算管理', '保育料・延長料金', '公定価格・施設型給付費', 'その他'],
   '施設・設備管理': ['施設点検・修繕', '消防・防災設備', '避難訓練計画', '遊具点検・安全基準', '衛生・清掃管理', '賃貸契約・責任範囲', '修繕・原状回復', '緊急修繕・大家への連絡', 'その他'],
   'BCP・危機管理': ['BCP策定支援', '災害時対応（地震・台風・水害）', '感染症BCP', '緊急連絡網', '事業継続計画の見直し', 'その他'],
   'ICT・DX・コドモン': ['コドモン運用・設定', 'おたより・連絡デジタル化', 'ICT補助金申請', '個人情報・セキュリティ', '保育記録デジタル化', 'SNS運用方針', 'その他'],
@@ -3013,7 +3031,8 @@ const catScroll = document.getElementById('catScroll');
 const navPrev = document.getElementById('navPrev');
 const navNext = document.getElementById('navNext');
 const pageNum  = document.getElementById('pageNum');
-const TOTAL_PAGES = 6;
+// カードは1ページ4枚（2列×2段）。カード数からページ数を計算する（12枚→3ページ）
+const TOTAL_PAGES = Math.max(1, Math.ceil(document.querySelectorAll('#catGrid .cat-card').length / 4));
 let currentPage = 0;
 
 function updateNav() {
@@ -3078,8 +3097,10 @@ function getViewer() {
 }
 
 // ── AIの返事（JSON）から回答文と根拠を取り出す（2026-10）──────────────
+// 回答は2区分：corp＝法人の規程・マニュアルに沿った回答／general＝一般的な情報（法人の方針ではない）
 // 回答が長くて途中で切れた場合や、JSONの前後に文字が付いた場合でも、
 // 画面に { や ":" などの記号が出ないようにする
+function pickStr(o, k) { return (o && typeof o[k] === 'string') ? o[k] : ''; }
 function parseBotReply(raw) {
   let t = String(raw || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
   const a = t.indexOf('{');
@@ -3089,26 +3110,64 @@ function parseBotReply(raw) {
     while (b > a && tries < 30) {
       try {
         const o = JSON.parse(t.slice(a, b + 1));
-        if (o && typeof o.answer === 'string') {
-          // JSONの外に付いていた文章（「詳しくは必ず法人（本部）に…」など）も回答の末尾に残す
+        if (o && (typeof o.general === 'string' || typeof o.corp === 'string' || typeof o.answer === 'string')) {
+          let general = pickStr(o, 'general') || pickStr(o, 'answer'); // 旧形式（answer）は一般情報として扱う
+          // JSONの外に付いていた文章（「詳しくは必ず法人（本部）に…」など）も一般情報の末尾に残す
           const tail = t.slice(b + 1).replace(/^[\s"}\]]+|[\s"}\]]+$/g, '').trim();
-          const ans = tail && o.answer.indexOf(tail) < 0 ? o.answer + '\n\n' + tail : o.answer;
-          return { answer: cleanAnswer(ans), citations: Array.isArray(o.citations) ? o.citations : [] };
+          if (tail && general.indexOf(tail) < 0) general = general + '\n\n' + tail;
+          return { corp: cleanAnswer(pickStr(o, 'corp')), general: cleanAnswer(general),
+                   citations: Array.isArray(o.citations) ? o.citations : [] };
         }
       } catch (e) {}
       b = t.lastIndexOf('}', b - 1); tries++;
     }
   }
-  // JSONとして読めない（途中で切れた等）→ "answer":"…" の中身だけを取り出す
-  const m = t.match(/"answer"\s*:\s*"((?:[^"\\]|\\.)*)/);
-  if (m) {
+  // JSONとして読めない（途中で切れた等）→ "corp":"…" / "general":"…" の中身だけを取り出す
+  const grab = (key) => {
+    const m = t.match(new RegExp('"' + key + '"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)'));
+    if (!m) return '';
     let body = m[1];
     try { body = JSON.parse('"' + body.replace(/\\$/, '') + '"'); }
     catch (e) { body = body.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\'); }
-    return { answer: cleanAnswer(body), citations: [] };
-  }
-  return { answer: cleanAnswer(t), citations: [] };
+    return cleanAnswer(body);
+  };
+  const corp = grab('corp'), general = grab('general') || grab('answer');
+  if (corp || general) return { corp, general, citations: [] };
+  return { corp: '', general: cleanAnswer(t), citations: [] };
 }
+
+// ── 根拠・参考のリンク（2026-10）──────────────────────────────
+// AIが作ったURLは実在しないことがあるため、そのまま使わない。
+// 「公式資料の登録リスト」か「今回のWeb検索で実際に見つかったページ」のURLだけをリンクにする。
+// それ以外は「検索して確認」リンク（参照元の名前で検索）を出す。
+const OFFICIAL_LINKS = [
+  { keys: ['令和７年度以降の処遇改善等加算', '令和7年度以降の処遇改善等加算'], title: 'こども家庭庁「令和７年度以降の処遇改善等加算について」',
+    url: 'https://www.cfa.go.jp/assets/contents/node/basic_page/field_ref_resources/3a1576c7-071d-4325-8be8-edced6d12ee1/5fbbce07/20250613_policies_kokoseido_123.pdf%20.pdf' },
+  { keys: ['処遇改善等加算Ⅰ～Ⅲの一本化', '処遇改善等加算の一本化'], title: 'こども家庭庁「処遇改善等加算Ⅰ～Ⅲの一本化について」（子ども・子育て支援等分科会 資料）',
+    url: 'https://www.cfa.go.jp/assets/contents/node/basic_page/field_ref_resources/443197f1-8796-458c-b5c8-27bb782a77d5/0615d05a/20241218_councils_shingikai_kodomo_kosodate_443197f1_09.pdf' },
+  { keys: ['e-Gov', '法令検索'], title: 'e-Gov法令検索', url: 'https://laws.e-gov.go.jp/' },
+  { keys: ['こども家庭庁'], title: 'こども家庭庁', url: 'https://www.cfa.go.jp/' },
+];
+let foundUrls = {}; // 今回のWeb検索で見つかったページ { url: title }
+function isCorpCitation(c) {
+  return c && (c.kind === 'corp' || /就業規則|給与規程|経理規程|カスタマーハラスメント防止マニュアル|法人.*(規程|マニュアル)/.test(c.source || ''));
+}
+function citationLink(c) {
+  if (!c || isCorpCitation(c)) return null; // 法人の規程・マニュアルはリンクなし
+  const u = String(c.url || '').trim();
+  if (/^https:\/\//.test(u)) {
+    if (foundUrls[u]) return { url: u, verified: true };
+    const off = OFFICIAL_LINKS.find(x => x.url === u);
+    if (off) return { url: u, verified: true };
+  }
+  const src = (c.source || '') + ' ' + (c.text || '');
+  const off2 = OFFICIAL_LINKS.find(x => x.keys.some(k => src.indexOf(k) >= 0) && x.keys[0] !== 'こども家庭庁');
+  if (off2) return { url: off2.url, verified: true };
+  const q = (c.source || c.text || '').replace(/[「」『』]/g, ' ').trim();
+  if (!q) return null;
+  return { url: 'https://www.google.com/search?q=' + encodeURIComponent(q), verified: false };
+}
+
 // 回答文から Markdown の記号（** や ### や ---）を取り除いて読みやすくする
 function cleanAnswer(s) {
   return String(s || '')
@@ -3130,7 +3189,10 @@ function silentLog(question, answer, askedAt, citations) {
   const viewer = getViewer();
   let ansText = answer || '';
   if (citations && citations.length) {
-    ansText += '\n\n【根拠】\n' + citations.map(c => '・' + (c.source || '') + (c.text ? '：' + c.text : '')).join('\n');
+    ansText += '\n\n【根拠】\n' + citations.map(c => {
+      const lk = citationLink(c);
+      return '・' + (c.source || '') + (c.text ? '：' + c.text : '') + (lk && lk.verified ? '（' + lk.url + '）' : '');
+    }).join('\n');
   }
   const payload = {
     datetime: askedAt || nowJST(),
@@ -3168,24 +3230,63 @@ function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 function scrollBottom() { bodyEl.scrollTop = bodyEl.scrollHeight; }
 function scrollToEl(el) { el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
 
+function textToHtml(t) { return String(t || '').split(/\n|\\n/).map(l => esc(l)).join('<br>'); }
+
+function appendCitations(citations) {
+  (citations || []).forEach(c => {
+    if (!c || !(c.text || c.source)) return;
+    const corp = isCorpCitation(c);
+    const cite = document.createElement('div'); cite.className = 'cite' + (corp ? '' : ' general');
+    const lk = citationLink(c);
+    let html = '<div class="cite-lbl">📌 根拠・参考' + (corp ? '（法人の規程・マニュアル）' : '（一般的な情報）') + '</div>' +
+      '<div class="cite-txt">' + esc(c.text || '') + '</div><div class="cite-src">' + esc(c.source || '') + '</div>';
+    if (lk) {
+      html += '<a class="cite-link' + (lk.verified ? '' : ' search') + '" href="' + esc(lk.url) + '" target="_blank" rel="noopener">' +
+        (lk.verified ? '🔗 資料を開く' : '🔍 検索して確認') + '</a>';
+    }
+    cite.innerHTML = html;
+    msgsEl.appendChild(cite);
+  });
+}
+
+// 通常のメッセージ（あいさつ・エラー等）
 function appendBotMsg(text, citations, noScroll) {
   const row = document.createElement('div'); row.className = 'row bot';
   const av  = document.createElement('div'); av.className  = 'av';
   av.innerHTML = '<img src="' + CHAR_IMG + '" alt="' + org.botName + '">';
   const bub = document.createElement('div'); bub.className = 'bubble';
-  const lines = text.split(/\n|\\n/);
-  bub.innerHTML = lines.map(l => esc(l)).join('<br>');
+  bub.innerHTML = textToHtml(text);
   const ts  = document.createElement('div'); ts.className  = 'ts'; ts.textContent = now();
   row.appendChild(av); row.appendChild(bub); row.appendChild(ts);
   msgsEl.appendChild(row);
   if (!noScroll) scrollToEl(row);
-  if (citations && citations.length) {
-    citations.forEach(c => {
-      const cite = document.createElement('div'); cite.className = 'cite';
-      cite.innerHTML = '<div class="cite-lbl">📌 根拠・参考</div><div class="cite-txt">' + esc(c.text) + '</div><div class="cite-src">' + esc(c.source||'') + '</div>';
-      msgsEl.appendChild(cite);
-    });
+  appendCitations(citations);
+}
+
+// 質問への回答（2区分）：①法人の規程・マニュアルに沿った回答 ②一般的な情報
+function appendTwoPartAnswer(parsed) {
+  const row = document.createElement('div'); row.className = 'row bot';
+  const av  = document.createElement('div'); av.className  = 'av';
+  av.innerHTML = '<img src="' + CHAR_IMG + '" alt="' + org.botName + '">';
+  const bub = document.createElement('div'); bub.className = 'bubble two';
+  let html = '<div class="ans-box">';
+  html += '<div class="ans-sec corp"><div class="ans-sec-hd">🏫 ① ' + esc(org.orgName) + 'の規程・マニュアルに沿った回答</div>';
+  html += parsed.corp
+    ? '<div>' + textToHtml(parsed.corp) + '</div>'
+    : '<div class="ans-sec-empty">' + esc(org.orgName) + 'の規程・マニュアルには、この内容についての定めが見当たりませんでした。</div>';
+  html += '</div>';
+  if (parsed.general) {
+    html += '<div class="ans-sec general"><div class="ans-sec-hd">🌐 ② 一般的な情報</div>' +
+      '<div class="ans-sec-note">※法令・行政資料などにもとづく一般的な内容です。' + esc(org.orgName) + 'の方針・マニュアルではありません。</div>' +
+      '<div>' + textToHtml(parsed.general) + '</div></div>';
   }
+  html += '</div>';
+  bub.innerHTML = html;
+  const ts  = document.createElement('div'); ts.className  = 'ts'; ts.textContent = now();
+  row.appendChild(av); row.appendChild(bub); row.appendChild(ts);
+  msgsEl.appendChild(row);
+  scrollToEl(row);
+  appendCitations(parsed.citations);
 }
 
 function appendUserMsg(text) {
@@ -3239,41 +3340,112 @@ async function send(forcedQuestion, skipDeptCheck) {
   }
   const kasuharaPart = kasuharaText ? `\n\n【カスタマーハラスメント防止マニュアル（優先参照）】\n${kasuharaText}` : '';
 
-  const sys = `あなたは保育園・認定こども園の園長を支援する専門アシスタントです。
-以下の知識データベースを参照して、園長の困りごとに対して具体的・実践的に答えてください。
+  const today = new Date().toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: 'long', day: 'numeric' });
+  const corpBlock = (kisokuText || '') + kasuharaPart;
 
+  const sys = `あなたは保育園・認定こども園の園長・職員を支援する専門アシスタントです。本日は${today}です。
+
+回答は必ず次の2つに分けてください。
+① corp：${org.orgName}の規程・マニュアルに沿った回答
+  - 下の【${org.orgName}の規程・マニュアル】に書かれている内容だけを使うこと
+  - 規程・マニュアルに該当する定めがない場合は、corp は空文字 "" にすること（推測で書かないこと）
+② general：一般的な情報（法令・行政資料・一般的な実務）
+  - 【一般知識データベース】やあなたの知識、Web検索の結果はすべてこちらに書くこと
+  - ${org.orgName}の方針・マニュアルであるかのように書かないこと
+
+【${org.orgName}の規程・マニュアル】（当園：${deptLabel}）
+${corpBlock || '（今回の質問で参照できる規程・マニュアルはありません）'}
+
+【一般知識データベース】（${org.orgName}の規程ではなく、一般的な参考情報）
 ${KNOWLEDGE}
 
-【当園（${deptLabel}）就業規則・給与規程（優先参照）】
-${kisokuText}${kasuharaPart}
+法令・通知・行政資料の扱い：
+A. 必ず最新のものを参照すること。原則として、現行版であるもの、または直近2年以内に発出・改定されたものに限ること。それより古い資料しか分からない場合は、その旨と「最新版をご確認ください」を明記すること
+B. 保育所・認定こども園・子ども・子育て支援制度は、2023年4月からこども家庭庁の所管です。まずこども家庭庁の資料を参照し、「内閣府・文部科学省・厚生労働省」連名の古い通知は根拠に使わないこと
+C. 処遇改善等加算は、令和7年度から加算Ⅰ・Ⅱ・Ⅲが一本化され「区分1（基礎分）」「区分2（賃金改善分）」「区分3（質の向上分）」になっています。「処遇改善等加算Ⅰ・Ⅱ・Ⅲ」という旧名称で説明しないこと（旧制度との対応を説明する場合を除く）。根拠はこども家庭庁「令和７年度以降の処遇改善等加算について」。毎年度見直しがあるため、最新年度の通知と自治体の案内を確認するよう添えること
+D. Web検索が使える場合は、こども家庭庁・厚生労働省・文部科学省・e-Gov法令検索などの公式サイトで最新情報を確認すること
 
 回答ルール：
-1. 園長の立場に立って、今すぐ実践できる具体的な手順・対応を示すこと
-2. 根拠となる法令・規則・ガイドライン等があれば必ず引用すること
+1. 園長・職員の立場に立って、今すぐ実践できる具体的な手順・対応を示すこと
+2. 根拠となる法令・規程・ガイドライン等があれば citations に挙げること
 3. 深刻な問題（虐待・重大事故・刑事事件等）は必ず専門家・行政への相談を促すこと
 4. 文体は「です・ます」調で統一すること
 4-2. 回答本文に Markdown 記号（** や ### や ---）は使わないこと。見出しは「■」や「1.」で表すこと
-5. 回答の末尾に「詳しくは必ず法人（本部）にご確認ください。」と付加すること。ただし、就業規則・給与規程の条文内容を単純に確認・説明するだけの質問（例：「〇〇手当の金額は？」「年次有給休暇の付与日数は？」など）には付けないこと。
-6. 必ず以下のJSONのみで回答（前後にテキスト不可）：
-{"answer":"回答本文（改行は\\nで表現）","citations":[{"text":"根拠・参考となる内容","source":"参照元（就業規則・労働基準法・内閣府ガイドライン等）"}]}`;
+5. general の末尾に「詳しくは必ず法人（本部）にご確認ください。」と付加すること。ただし、就業規則・給与規程の条文内容を単純に確認・説明するだけの質問（例：「〇〇手当の金額は？」「年次有給休暇の付与日数は？」など）には付けないこと。
+6. citations の kind は、${org.orgName}の規程・マニュアルなら "corp"、それ以外は "general" とすること。url は、Web検索で実際に開いた公式ページのURLか、こども家庭庁「令和７年度以降の処遇改善等加算について」（https://www.cfa.go.jp/assets/contents/node/basic_page/field_ref_resources/3a1576c7-071d-4325-8be8-edced6d12ee1/5fbbce07/20250613_policies_kokoseido_123.pdf%20.pdf）のみ記入し、それ以外は空文字にすること（URLを推測で作らないこと）
+7. 必ず以下のJSONのみで回答（前後にテキスト不可）：
+{"corp":"①の回答本文（なければ空文字。改行は\\nで表現）","general":"②の回答本文（改行は\\nで表現）","citations":[{"kind":"corp または general","text":"根拠・参考となる内容","source":"参照元（例：就業規則 第〇条／こども家庭庁「〇〇」（令和〇年〇月））","url":""}]}`;
 
   try {
-    const resp = await fetch(WORKER_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: sys, messages: history })
-    });
-    const data = await resp.json(); removeTyping();
+    const data = await callBot(sys, history);
+    removeTyping();
     if (data.error) { appendBotMsg('エラーが発生しました：' + data.error.message, []); silentLog(q, '（エラー）' + data.error.message, askedAt); return; }
-    const raw   = (data.content||[]).map(b=>b.text||'').join('');
+    const raw    = finalText(data.content || []);
     const parsed = parseBotReply(raw);
-    const ans = parsed.answer;
-    appendBotMsg(ans, parsed.citations||[]); history.push({ role: 'assistant', content: ans });
-    silentLog(q, ans, askedAt, parsed.citations||[]);
+    appendTwoPartAnswer(parsed);
+    const logText = '【①' + org.orgName + 'の規程・マニュアル】\n' + (parsed.corp || '（該当する定めなし）') +
+                    '\n\n【②一般的な情報】\n' + (parsed.general || '');
+    history.push({ role: 'assistant', content: logText });
+    silentLog(q, logText, askedAt, parsed.citations || []);
   } catch(err) {
     removeTyping(); appendBotMsg('エラーが発生しました。\n' + err.message, []);
     silentLog(q, '（エラー）' + err.message, askedAt);
   }
+}
+
+// ── AI呼び出し（2026-10）──────────────────────────────
+// 最新の公的情報を確認できるよう、Web検索（公式サイト限定）付きで呼び出す。
+// 中継サーバーやAPIの設定でWeb検索が使えない場合は、検索なしで呼び直す（従来どおりの動き）。
+const WEB_SEARCH_TOOL = {
+  type: 'web_search_20250305', name: 'web_search', max_uses: 3,
+  allowed_domains: ['cfa.go.jp', 'www.cfa.go.jp', 'mhlw.go.jp', 'www.mhlw.go.jp', 'mext.go.jp', 'www.mext.go.jp', 'laws.e-gov.go.jp', 'e-gov.go.jp', 'cao.go.jp', 'www.cao.go.jp'],
+};
+let webSearchUsable = true;
+async function postWorker(body) {
+  const resp = await fetch(WORKER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  return await resp.json();
+}
+async function callBot(sys, msgs) {
+  foundUrls = {};
+  const base = { model: 'claude-sonnet-4-6', max_tokens: 4000, system: sys };
+  if (webSearchUsable) {
+    try {
+      let convo = msgs.slice();
+      let data = await postWorker(Object.assign({}, base, { messages: convo, tools: [WEB_SEARCH_TOOL] }));
+      // 検索が長引いて途中で止まった場合（pause_turn）は続きを依頼する
+      let guard = 0;
+      while (data && !data.error && data.stop_reason === 'pause_turn' && guard < 2) {
+        collectSearchUrls(data.content || []);
+        convo = convo.concat([{ role: 'assistant', content: data.content }]);
+        data = await postWorker(Object.assign({}, base, { messages: convo, tools: [WEB_SEARCH_TOOL] }));
+        guard++;
+      }
+      if (data && !data.error) { collectSearchUrls(data.content || []); return data; }
+      console.warn('Web検索つき呼び出しに失敗したため、検索なしで再実行します:', data && data.error);
+    } catch (e) {
+      console.warn('Web検索つき呼び出しに失敗したため、検索なしで再実行します:', e);
+    }
+    webSearchUsable = false; // このページを開いている間は、以降は検索なしで呼ぶ
+  }
+  return await postWorker(Object.assign({}, base, { messages: msgs }));
+}
+// Web検索の結果に出てきたページのURLを控える（根拠リンクとして使ってよいURLの一覧）
+function collectSearchUrls(content) {
+  (content || []).forEach(b => {
+    if (b && b.type === 'web_search_tool_result' && Array.isArray(b.content)) {
+      b.content.forEach(r => { if (r && r.url) foundUrls[r.url] = r.title || r.url; });
+    }
+    if (b && b.type === 'text' && Array.isArray(b.citations)) {
+      b.citations.forEach(c => { if (c && c.url) foundUrls[c.url] = c.title || c.url; });
+    }
+  });
+}
+// 回答本文（JSON）は、最後の検索結果より後ろのテキストにある
+function finalText(content) {
+  let last = -1;
+  content.forEach((b, i) => { if (b && (b.type === 'web_search_tool_result' || b.type === 'server_tool_use')) last = i; });
+  const after = content.slice(last + 1).filter(b => b && b.type === 'text').map(b => b.text || '').join('');
+  return after || content.filter(b => b && b.type === 'text').map(b => b.text || '').join('');
 }
 </script>
 </body>
