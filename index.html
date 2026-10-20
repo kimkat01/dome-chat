@@ -426,6 +426,7 @@ const GARDENS = {
   'shokibo': {
     org: 'shibagakuen',
     title: 'しおどめ保育園小規模認可専用チャットボット',
+    gardenName: 'shokibo_ninka', // Homeの戻り先（職員ダッシュボードの ?garden=。園キー shokibo とは別名のため明記）
     departments: {
       '正規職員': 'https://kimkat01.github.io/dome-chat/kisoku_shokibo_seiki.txt',
       'パートタイム職員': 'https://kimkat01.github.io/dome-chat/kisoku_shokibo_part.txt',
@@ -469,6 +470,8 @@ const GARDENS = {
     kisoku: 'https://kimkat01.github.io/dome-chat/kisoku_fureai_shiodome_part.txt',
   },
 };
+// 別名：職員ダッシュボードは園マスタ（gardens.js）の園キー shokibo_ninka で開くので、同じ設定を参照させる
+GARDENS['shokibo_ninka'] = GARDENS['shokibo'];
 
 // Homeボタンの戻り先。園のダッシュボードが別リポジトリにある園（ふれあい等）は
 // staff-dashboard/docs/manuals.js の GARDEN_HOMES（全ツール共通の戻り先一覧）に従う。
