@@ -3206,6 +3206,31 @@ const msgsEl = document.getElementById('msgs');
 const inpEl  = document.getElementById('inp');
 const bodyEl = document.getElementById('bodyEl');
 let history  = [];
+// ── AIに送る会話は直近の数往復だけにする（2026-10）──────────────────
+// 全部の会話を送ると、続けて質問したときに前の質問まで答えてしまい、料金も増えるため。
+//   ・送るのは「直近 HISTORY_TURNS 往復」＋今回の質問だけ
+//   ・回答が返ってこなかった質問（エラー・連打）は送らない
+//   ・前の回答は長い場合は先頭だけにする
+const HISTORY_TURNS = 3;          // 直近3往復
+const HISTORY_ANSWER_MAX = 1500;  // 前の回答は1500文字まで
+function recentHistory() {
+  const pairs = [];
+  let pendingUser = null;
+  history.forEach(m => {
+    if (m.role === 'user') { pendingUser = m; return; }           // 続けて質問した場合は最後の質問だけ残す
+    if (m.role === 'assistant' && pendingUser) {
+      let a = String(m.content || '');
+      if (a.length > HISTORY_ANSWER_MAX) a = a.slice(0, HISTORY_ANSWER_MAX) + '…（以下略）';
+      pairs.push([pendingUser, { role: 'assistant', content: a }]);
+      pendingUser = null;
+    }
+  });
+  const out = [];
+  pairs.slice(-HISTORY_TURNS).forEach(pr => { out.push(pr[0]); out.push(pr[1]); });
+  const last = history[history.length - 1];
+  if (last && last.role === 'user') out.push(last);              // 今回の質問
+  return out;
+}
 
 // ── 本部向けサイレントログ送信 ──────────────────────────────
 // Google Apps Script Web App の URL をここに設定してください
@@ -3545,7 +3570,7 @@ D. Web検索が使える場合は、こども家庭庁・厚生労働省・文�
 {"corp":"①の回答本文（なければ空文字。改行は\\nで表現）","general":"②の回答本文（改行は\\nで表現）","citations":[{"kind":"corp または general","text":"根拠・参考となる内容","source":"参照元（例：就業規則 第〇条／こども家庭庁「〇〇」（令和〇年〇月））","url":""}]}`;
 
   try {
-    const data = await callBot(sys, history);
+    const data = await callBot(sys, recentHistory());
     removeTyping();
     if (data.error) { appendBotMsg('エラーが発生しました：' + data.error.message, []); silentLog(q, '（エラー）' + data.error.message, askedAt); return; }
     const raw    = finalText(data.content || []);
