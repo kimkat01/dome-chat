@@ -296,6 +296,7 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh}
 </div>
 
 <script src="https://kimkat01.github.io/staff-dashboard/docs/manuals.js"></script>
+<script src="https://kimkat01.github.io/dome-chat/corrections.js"></script>
 <!-- 利用状況（2026-10-21）：質問したら本部の利用状況に「投稿」として記録する -->
 <script src="https://kimkat01.github.io/staff-dashboard/access-log.js"></script>
 <script>
@@ -3239,6 +3240,62 @@ const GAS_LOG_URL = 'https://script.google.com/macros/s/AKfycbx_57o1zgcnGP2220Nu
 // 利用者の特定（2026-10）：職員ダッシュボード／園長ダッシュボードのログイン情報を読む。
 // 同じサイト（kimkat01.github.io）なので、名前をURLに出さずにブラウザ内の保存データから取得できる。
 // 画面には一切表示しない。ログインしていなければ空欄で記録する。
+// ── ドメボットからの「回答の訂正」のお知らせ（2026-10）──────────────
+// corrections.js の DOME_CORRECTIONS に書いた人が開いたときだけ、ドメボットの吹き出しで1回表示する。
+// この端末（ブラウザ）に、その人の職員ダッシュボード／園長ダッシュボードのログインが残っていれば対象とする。
+function storedLogins() {
+  const list = [];
+  const pick = (store) => {
+    try {
+      for (let i = 0; i < store.length; i++) {
+        const k = store.key(i);
+        if (!/^(sd_pin_login__|kb_encho_login__)/.test(k)) continue;
+        const s = JSON.parse(store.getItem(k) || 'null');
+        if (!s || !s.loginId) continue;
+        if (s.exp && s.exp < Date.now()) continue; // 期限切れのログインは使わない
+        list.push(s);
+      }
+    } catch (e) {}
+  };
+  try { pick(localStorage); } catch (e) {}
+  try { pick(sessionStorage); } catch (e) {}
+  return list;
+}
+function showCorrections() {
+  try {
+    const list = (typeof DOME_CORRECTIONS !== 'undefined' && Array.isArray(DOME_CORRECTIONS)) ? DOME_CORRECTIONS : [];
+    if (!list.length) return;
+    const ids = storedLogins().map(s => String(s.loginId));
+    list.forEach(c => {
+      if (!c || !c.id || !c.loginId || !c.message) return;
+      if (c.garden && GARDENS[c.garden] !== garden) return;    // 別の園のボットでは出さない
+      if (ids.indexOf(String(c.loginId)) < 0) return;          // 本人のログインがこの端末にない
+      const key = 'dome_correction_shown__' + c.id;
+      try { if (localStorage.getItem(key)) return; } catch (e) {} // この端末では表示済み
+      appendBotMsg(c.message, [], true);
+      try { localStorage.setItem(key, nowJST()); } catch (e) {}
+      correctionLog(c);
+    });
+  } catch (e) { console.warn('訂正のお知らせの表示に失敗:', e); }
+}
+// 表示したことを「ドメボット記録」に1行残す（本人が見たかの確認用）
+function correctionLog(c) {
+  if (!GAS_LOG_URL || GAS_LOG_URL === 'YOUR_GAS_URL_HERE') return;
+  fetch(GAS_LOG_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      datetime: nowJST(),
+      garden: garden.title || enKey,
+      question: '【ドメボットからの訂正のお知らせを表示】',
+      name: c.name || '',
+      loginId: String(c.loginId),
+      answer: c.message,
+    }),
+  }).catch(() => {});
+}
+
 function getViewer() {
   const list = [];
   const pick = (store) => {
@@ -3383,6 +3440,7 @@ function silentLog(question, answer, askedAt, citations) {
 
 window.onload = function() {
   appendBotMsg('こんにちは！相談をタップするか、直接ご質問ください。', [], true);
+  showCorrections(); // ドメボットからの回答の訂正のお知らせ（対象の人だけ）
   // 初期表示はページ最上部（ヘッダー・相談カード）を見せる
   if (bodyEl) bodyEl.scrollTop = 0;
 };
