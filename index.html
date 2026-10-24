@@ -398,12 +398,8 @@ const GARDENS = {
     org: 'shibagakuen',
     title: 'しおどめ保育園つくば専用チャットボット',
     gardenName: 'しおどめ保育園つくば', // Homeの戻り先（職員ダッシュボードの ?garden=）
-    // 2026-10：給与規程（正規職員）とパートタイム職員就業規則は、職員ダッシュボード（staff-dashboard/docs/tsukuba/）の
-    // PDFから自動で読み込む。ボット用テキストは正規職員就業規則のみ（パートは空＝ダッシュボードのPDFだけを使う）
-    departments: {
-      '正規職員': 'https://kimkat01.github.io/dome-chat/kisoku_tsukuba_seiki.txt',
-      'パートタイム職員': '',
-    },
+    // パートタイム職員就業規則・給与規程は未受領のため、正規職員就業規則のみ暫定登録
+    kisoku: 'https://kimkat01.github.io/dome-chat/kisoku_tsukuba_seiki.txt',
   },
   'fureai_yashio': {
     org: 'shibagakuen',
@@ -461,28 +457,19 @@ const GARDENS = {
     },
   },
   // ふれあいしおどめ保育園（茨城県守谷市）。職員ダッシュボードからは en=fureai_shiodome で開かれる。
-  // 2026-10：正規職員就業規則・給与規程・育児介護休業規程は、職員ダッシュボード（staff-dashboard/docs/fureai_shiodome/）の
-  // PDFから自動で読み込む。ボット用テキストはパートタイム職員就業規則のみ（令和8年4月1日改定版）
+  // 正規職員就業規則・給与規程は未受領のため、パートタイム職員就業規則のみ登録（令和8年4月1日改定版）
   'fureai_shiodome': {
     org: 'shibagakuen',
     title: 'ふれあいしおどめ保育園専用チャットボット',
     gardenName: 'ふれあいしおどめ保育園',
-    docsFolder: 'fureai_shiodome',
-    departments: {
-      '正規職員': '',
-      'パートタイム職員': 'https://kimkat01.github.io/dome-chat/kisoku_fureai_shiodome_part.txt',
-    },
+    kisoku: 'https://kimkat01.github.io/dome-chat/kisoku_fureai_shiodome_part.txt',
   },
   // 旧キー（互換用）。中身は fureai_shiodome と同じ
   'fureai_moriya': {
     org: 'shibagakuen',
     title: 'ふれあいしおどめ保育園専用チャットボット',
     gardenName: 'ふれあいしおどめ保育園',
-    docsFolder: 'fureai_shiodome',
-    departments: {
-      '正規職員': '',
-      'パートタイム職員': 'https://kimkat01.github.io/dome-chat/kisoku_fureai_shiodome_part.txt',
-    },
+    kisoku: 'https://kimkat01.github.io/dome-chat/kisoku_fureai_shiodome_part.txt',
   },
 };
 // 別名：職員ダッシュボードは園マスタ（gardens.js）の園キー shokibo_ninka で開くので、同じ設定を参照させる
@@ -2931,13 +2918,12 @@ async function fetchKasuhara() {
 }
 
 function isKisokuQuestion(q) {
-  return /就業規則|給与規程|給与規則|給与規定|規程|規則|労働条件|休暇|有給|有休|時間休|残業|賞与|ボーナス|退職|懲戒|育児休業|介護休業|育休|産休|経理規程|忌引|慶弔|特別休暇|給与|給料|手当|通勤|処遇改善|昇給|休職|復職|定年|試用期間|勤務時間|労働時間|休日|振替|代休|欠勤|遅刻|早退|健康診断|社会保険|控除|私学共済|ハラスメント|パワハラ|セクハラ|服務|異動|雇用契約|契約更新|無期転換/.test(q);
+  return /就業規則|給与規程|給与規則|労働条件|休暇|有給|残業|賞与|退職金|懲戒|育児休業|介護休業|経理規程/.test(q);
 }
 
 async function fetchDeptKisoku(deptName) {
   if (deptKisokuCache[deptName]) return deptKisokuCache[deptName];
   const url = garden.departments[deptName];
-  if (!url) { deptKisokuCache[deptName] = ''; return ''; } // ボット用テキストなし（職員ダッシュボードのPDFだけを使う）
   try {
     const r = await fetch(url);
     const text = r.ok ? await r.text() : '';
@@ -2947,130 +2933,6 @@ async function fetchDeptKisoku(deptName) {
     console.warn('部門規程読み込み失敗:', deptName, e);
     return '';
   }
-}
-
-// ── 職員ダッシュボードの「規約・マニュアル」も参照する（2026-10）──────────────
-// ルール：ドメボットに登録されていない規程は、職員ダッシュボード（staff-dashboard/docs/）のPDFを確認して使う。
-//   ・どの園にどのPDFがあるかは staff-dashboard/docs/manuals.js（全ツール共通の文書一覧）で判定する
-//   ・園長専用（enchoOnly）の文書（法人の管理規程・経理規程）は職員向けなので読まない
-//   ・正規職員なら「seiki-」、パートタイム職員なら「part-」で始まるPDFを読む（パートの給与はパート就業規則の給与の章）
-//   ・育児介護休業規程・BCP/防災・こども性暴力防止法の資料は、質問に関係する言葉があるときだけ読む（料金を抑えるため）
-//   ・ボット用テキストに同じ内容がすでに入っているPDFは重ねて読まない
-//   ・画像（スキャン）のPDFは文字が取れないので、ボット用テキストをそのまま使う
-const DASH_DOCS_BASE = 'https://kimkat01.github.io/staff-dashboard/docs/';
-const DASH_PDFJS_SRC = DASH_DOCS_BASE + 'pdf.min.js';
-const DASH_PDFJS_WORKER = DASH_DOCS_BASE + 'pdf.worker.min.js';
-const DASH_CMAP_URL = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/';
-// ボットの園キーと職員ダッシュボードのフォルダ名が違う園
-const DASH_FOLDER_ALIAS = { shokibo: 'shokibo_ninka', fureai_moriya: 'fureai_shiodome' };
-const DASH_RE_IKUJI = /育児|介護|育休|産休|産前|産後|看護休暇|短時間勤務|妊娠|出産|子の看護/;
-const DASH_RE_BOUSAI = /BCP|ＢＣＰ|業務継続|防災|防犯|災害|避難|地震|台風|水害|洪水|火災|停電|不審者|安否/;
-const DASH_RE_SEIBOURYOKU = /性暴力|日本版DBS|ＤＢＳ|DBS|性犯罪|犯罪事実確認/;
-
-function dashFolder() {
-  const f = garden.docsFolder || DASH_FOLDER_ALIAS[enKey] || enKey;
-  return (typeof MANUALS !== 'undefined' && MANUALS[f]) ? f : '';
-}
-function dashDocKind(file) {
-  const n = String(file).split('/').pop();
-  if (/^seiki-/.test(n)) return 'seiki';
-  if (/^part-/.test(n)) return 'part';
-  if (/ikuji|kaigo/.test(n)) return 'ikuji';
-  if (/bcp|bousai|bouhan/.test(n)) return 'bousai';
-  if (/customer-harassment/.test(n)) return 'kasuhara';   // カスハラはボット用テキスト（org.kasuhara）を使う
-  if (/seibouryoku/.test(n)) return 'seibouryoku';
-  if (/kanri-kitei|keiri-kitei/.test(n)) return 'houjin';  // 園長専用（念のため読まない）
-  return 'other';
-}
-let dashPdfjsReady = null;
-function dashLoadPdfjs() {
-  if (dashPdfjsReady) return dashPdfjsReady;
-  dashPdfjsReady = new Promise((resolve, reject) => {
-    const done = () => {
-      if (!window.pdfjsLib) { reject(new Error('pdf.js が見つかりません')); return; }
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc = DASH_PDFJS_WORKER;
-      resolve(window.pdfjsLib);
-    };
-    if (window.pdfjsLib) { done(); return; }
-    const sc = document.createElement('script');
-    sc.src = DASH_PDFJS_SRC;
-    sc.onload = done;
-    sc.onerror = () => reject(new Error('pdf.js の読み込みに失敗しました'));
-    document.head.appendChild(sc);
-  });
-  dashPdfjsReady.catch(() => { dashPdfjsReady = null; }); // 失敗したら次の質問でもう一度試す
-  return dashPdfjsReady;
-}
-const dashTextCache = {};
-function dashPdfText(file) {
-  if (dashTextCache[file]) return dashTextCache[file];
-  const job = (async () => {
-    try {
-      const lib = await dashLoadPdfjs();
-      const pdf = await lib.getDocument({ url: DASH_DOCS_BASE + file, cMapUrl: DASH_CMAP_URL, cMapPacked: true }).promise;
-      const pages = [];
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const tc = await page.getTextContent();
-        pages.push(tc.items.map(it => (it.str || '') + (it.hasEOL ? '\n' : '')).join(''));
-      }
-      return pages.join('\n');
-    } catch (e) {
-      console.warn('職員ダッシュボードのPDF読み込み失敗:', file, e);
-      delete dashTextCache[file];
-      return '';
-    }
-  })();
-  dashTextCache[file] = job;
-  return job;
-}
-function dashNorm(s) { return String(s || '').normalize('NFKC').replace(/[\s\u3000]/g, ''); }
-// 照合用：漢字・ひらがな・カタカナだけを残す（ページ番号・項番号・記号の違いで照合が外れないように）
-function dashCore(s) { return String(s || '').normalize('NFKC').replace(/[^\u3040-\u30ff\u3400-\u9fff]/g, ''); }
-// PDFの中身がボット用テキストにすでに入っているか（本文の15か所を抜き出して照合）
-function dashCoverRate(pdfText, botText) {
-  const a = dashCore(pdfText), b = dashCore(botText);
-  if (!b || a.length < 300) return 0;
-  let n = 0, hit = 0;
-  for (let i = 1; i <= 15; i++) {
-    const snip = a.substr(Math.floor(a.length * i / 16), 14);
-    if (snip.length < 14) continue;
-    n++;
-    if (b.indexOf(snip) >= 0) hit++;
-  }
-  return n ? hit / n : 0;
-}
-function dashCoveredBy(pdfText, botText) { return dashCoverRate(pdfText, botText) >= 0.6; }
-// 今回の質問で読む職員ダッシュボードの規程をまとめて返す（なければ空文字）
-async function dashboardDocsBlock(q, botText) {
-  const folder = dashFolder();
-  if (!folder || typeof manualGroupsFor !== 'function') return '';
-  // 雇用区分：部門選択がある園は選んだ区分、部門のない園は全部
-  let emp = 'all';
-  if (garden.departments) emp = selectedDept ? (/パート/.test(selectedDept) ? 'part' : 'seiki') : '';
-  const docs = [];
-  manualGroupsFor(folder, { encho: false }).forEach(g => (g.docs || []).forEach(d => docs.push(d)));
-  const want = docs.filter(d => {
-    const k = dashDocKind(d.file);
-    if (k === 'seiki') return emp === 'seiki' || emp === 'all';
-    if (k === 'part') return emp === 'part' || emp === 'all';
-    if (k === 'ikuji') return !!emp && DASH_RE_IKUJI.test(q);
-    if (k === 'bousai') return DASH_RE_BOUSAI.test(q);
-    if (k === 'seibouryoku') return DASH_RE_SEIBOURYOKU.test(q);
-    if (k === 'other') return !!emp;
-    return false; // kasuhara・houjin
-  });
-  if (!want.length) return '';
-  const texts = await Promise.all(want.map(d => dashPdfText(d.file)));
-  const parts = [];
-  want.forEach((d, i) => {
-    const t = texts[i] || '';
-    if (dashNorm(t).length < 300) { console.log('文字を取り出せないPDF（画像のPDF）のため、ボット用テキストを使います:', d.file); return; }
-    if (dashCoveredBy(t, botText)) { console.log('ボット用テキストに収録済みのため重ねて読みません:', d.file); return; }
-    parts.push('【' + d.title + '（職員ダッシュボード「規約・マニュアル」掲載）】\n' + t);
-    console.log('職員ダッシュボードの規程を参照:', d.file, t.length, '文字');
-  });
-  return parts.join('\n\n');
 }
 
 function showDeptChoice(originalQuestion) {
@@ -3489,15 +3351,6 @@ async function send(forcedQuestion, skipDeptCheck) {
     }
   }
 
-  // ボットにない規程は職員ダッシュボードのPDFを確認して足す（2026-10）
-  let dashText = '';
-  try { dashText = await dashboardDocsBlock(q, kisokuText); } catch (e) { console.warn('職員ダッシュボードの規程の参照に失敗:', e); }
-  if (dashText) {
-    // 「給与規程は未受領」などの古い注記が残っていると、AIが「未収録」と答えてしまうため外す
-    kisokuText = String(kisokuText || '').replace(/^※.*未受領.*$/gm, '');
-    kisokuText = (kisokuText ? kisokuText + '\n\n' : '') + dashText;
-  }
-
   let kasuharaText = '';
   if (isKasuharaQuestion(q)) {
     kasuharaText = await fetchKasuhara();
@@ -3513,10 +3366,6 @@ async function send(forcedQuestion, skipDeptCheck) {
 ① corp：${org.orgName}の規程・マニュアルに沿った回答
   - 下の【${org.orgName}の規程・マニュアル】に書かれている内容だけを使うこと
   - 規程・マニュアルに該当する定めがない場合は、corp は空文字 "" にすること（推測で書かないこと）
-  - 規程・マニュアルに定めがあるのに一般論だけで答えないこと（特別休暇・忌引、手当、退職金、時間単位の有給などは必ず規程を確認すること）
-  - 「職員ダッシュボード『規約・マニュアル』掲載」と書かれた規程も${org.orgName}の正式な規程として扱うこと
-  - パートタイム職員の給与は、パートタイム職員就業規則の中の給与の章（給与構成〜賞与・退職金）に定められている。パートの給与・給与規程を聞かれたら、そこから答えること
-  - 質問者が正規職員かパートタイム職員か分からず、両者で規程が違う場合は、両方を分けて示すこと
 ② general：一般的な情報（法令・行政資料・一般的な実務）
   - 【一般知識データベース】やあなたの知識、Web検索の結果はすべてこちらに書くこと
   - ${org.orgName}の方針・マニュアルであるかのように書かないこと
