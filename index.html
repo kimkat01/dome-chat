@@ -2948,6 +2948,23 @@ async function fetchMontessori() {
   return montessoriCache;
 }
 
+// 育児担当制の基礎知識（2026-10）：法人の方針ではないので②一般情報の参考資料として渡す。両法人共通
+function isIkujiTantoQuestion(q) {
+  return /育児担当|担当制|育担|流れる日課|ながれる日課|ゆるやかな担当|緩やかな担当|副担当|応答的(な|に)?(関わ|かかわ)|愛着形成|アタッチメント|ピクラー|ロッツィ/.test(q);
+}
+let ikujiTantoCache = null;
+async function fetchIkujiTanto() {
+  if (ikujiTantoCache) return ikujiTantoCache;
+  try {
+    const r = await fetch('https://kimkat01.github.io/dome-chat/ikuji_tanto.txt');
+    ikujiTantoCache = r.ok ? await r.text() : '';
+  } catch (e) {
+    console.warn('育児担当制資料の読み込み失敗:', e);
+    ikujiTantoCache = '';
+  }
+  return ikujiTantoCache;
+}
+
 function isKisokuQuestion(q) {
   return /就業規則|給与規程|給与規則|給与規定|規程|規則|労働条件|休暇|有給|有休|時間休|残業|賞与|ボーナス|退職|懲戒|育児休業|介護休業|育休|産休|経理規程|忌引|慶弔|特別休暇|給与|給料|手当|通勤|処遇改善|昇給|休職|復職|定年|試用期間|勤務時間|労働時間|休日|振替|代休|欠勤|遅刻|早退|健康診断|社会保険|控除|私学共済|ハラスメント|パワハラ|セクハラ|服務|異動|雇用契約|契約更新|無期転換/.test(q);
 }
@@ -3073,7 +3090,7 @@ async function dashboardDocsBlock(q, botText) {
     const k = dashDocKind(d.file);
     if (k === 'seiki') return emp === 'seiki' || emp === 'all';
     if (k === 'part') return emp === 'part' || emp === 'all';
-    if (k === 'ikuji') return !!emp && DASH_RE_IKUJI.test(q);
+    if (k === 'ikuji') return !!emp && DASH_RE_IKUJI.test(q.replace(/育児担当制?/g, '')); // 「育児担当制」は保育の方法なので育休規程は読まない
     if (k === 'bousai') return DASH_RE_BOUSAI.test(q);
     if (k === 'seibouryoku') return DASH_RE_SEIBOURYOKU.test(q);
     if (k === 'other') return !!emp;
@@ -3621,6 +3638,12 @@ async function send(forcedQuestion, skipDeptCheck) {
     if (montessoriText) console.log('モンテッソーリ資料を参照:', montessoriText.length, '文字');
   }
 
+  let ikujiTantoText = '';
+  if (isIkujiTantoQuestion(q)) {
+    ikujiTantoText = await fetchIkujiTanto();
+    if (ikujiTantoText) console.log('育児担当制資料を参照:', ikujiTantoText.length, '文字');
+  }
+
   const today = new Date().toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: 'long', day: 'numeric' });
   const corpBlock = (kisokuText || '') + kasuharaPart;
 
@@ -3645,6 +3668,7 @@ ${corpBlock || '（今回の質問で参照できる規程・マニュアルは�
 ${KNOWLEDGE}
 ${refText ? '\n【国の参考資料】（' + org.orgName + 'の規程ではありません。② general で使うこと）\n' + refText + '\n' : ''}
 ${montessoriText ? '\n【モンテッソーリ教育の参考資料】（' + org.orgName + 'の規程・方針ではありません。② general で使うこと）\n' + montessoriText + '\n' : ''}
+${ikujiTantoText ? '\n【育児担当制の参考資料】（' + org.orgName + 'の規程・方針ではありません。② general で使うこと）\n' + ikujiTantoText + '\n' : ''}
 
 法令・通知・行政資料の扱い：
 A. 必ず最新のものを参照すること。原則として、現行版であるもの、または直近2年以内に発出・改定されたものに限ること。それより古い資料しか分からない場合は、その旨と「最新版をご確認ください」を明記すること
@@ -3659,6 +3683,11 @@ F. モンテッソーリ教育について：
   - 【モンテッソーリ教育の参考資料】がある場合はそれを主な根拠にし、② general に書くこと（① corp には書かないこと）
   - ${org.orgName}や当園がモンテッソーリ教育を採用している・していないと断定しないこと。園としての取り入れ方は「園長にご確認ください」と添えること
   - 敏感期などの年齢は目安で個人差が大きいこと、発達の心配は園長・専門機関に相談することを必要に応じて添えること
+G. 育児担当制について：
+  - 【育児担当制の参考資料】がある場合はそれを主な根拠にし、② general に書くこと（① corp には書かないこと）
+  - 「育児担当制」は保育の方法であり、職員の育児休業（育休）とは別物。育休の規程と混同しないこと
+  - ${org.orgName}や当園が育児担当制を採用している・していないと断定しないこと。園での運用（担当の決め方・日課など）は「園長にご確認ください」と添えること
+  - 配置基準や保育所保育指針の文言は、最新の資料で確認するよう添えること
 D. Web検索が使える場合は、こども家庭庁・厚生労働省・文部科学省・e-Gov法令検索などの公式サイトで最新情報を確認すること
 
 回答ルール：
