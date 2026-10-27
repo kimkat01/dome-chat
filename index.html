@@ -2931,6 +2931,23 @@ async function fetchKasuhara() {
   return kasuharaCache;
 }
 
+// モンテッソーリ教育の基礎知識（2026-10）：法人の方針ではないので②一般情報の参考資料として渡す。両法人共通
+function isMontessoriQuestion(q) {
+  return /モンテッソーリ|モンテ|montessori|敏感期|吸収する精神|吸収精神|教具|日常生活の練習|感覚教育|ピンクタワー|円柱さし|砂文字|提示の仕方|正常化|ノーマライゼーション|3段階の名称練習|三段階の名称練習|整えられた環境|準備された環境/i.test(q);
+}
+let montessoriCache = null;
+async function fetchMontessori() {
+  if (montessoriCache) return montessoriCache;
+  try {
+    const r = await fetch('https://kimkat01.github.io/dome-chat/montessori.txt');
+    montessoriCache = r.ok ? await r.text() : '';
+  } catch (e) {
+    console.warn('モンテッソーリ資料の読み込み失敗:', e);
+    montessoriCache = '';
+  }
+  return montessoriCache;
+}
+
 function isKisokuQuestion(q) {
   return /就業規則|給与規程|給与規則|給与規定|規程|規則|労働条件|休暇|有給|有休|時間休|残業|賞与|ボーナス|退職|懲戒|育児休業|介護休業|育休|産休|経理規程|忌引|慶弔|特別休暇|給与|給料|手当|通勤|処遇改善|昇給|休職|復職|定年|試用期間|勤務時間|労働時間|休日|振替|代休|欠勤|遅刻|早退|健康診断|社会保険|控除|私学共済|ハラスメント|パワハラ|セクハラ|服務|異動|雇用契約|契約更新|無期転換/.test(q);
 }
@@ -3598,6 +3615,12 @@ async function send(forcedQuestion, skipDeptCheck) {
   }
   const kasuharaPart = kasuharaText ? `\n\n【カスタマーハラスメント防止マニュアル（優先参照）】\n${kasuharaText}` : '';
 
+  let montessoriText = '';
+  if (isMontessoriQuestion(q)) {
+    montessoriText = await fetchMontessori();
+    if (montessoriText) console.log('モンテッソーリ資料を参照:', montessoriText.length, '文字');
+  }
+
   const today = new Date().toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: 'long', day: 'numeric' });
   const corpBlock = (kisokuText || '') + kasuharaPart;
 
@@ -3621,6 +3644,7 @@ ${corpBlock || '（今回の質問で参照できる規程・マニュアルは�
 【一般知識データベース】（${org.orgName}の規程ではなく、一般的な参考情報）
 ${KNOWLEDGE}
 ${refText ? '\n【国の参考資料】（' + org.orgName + 'の規程ではありません。② general で使うこと）\n' + refText + '\n' : ''}
+${montessoriText ? '\n【モンテッソーリ教育の参考資料】（' + org.orgName + 'の規程・方針ではありません。② general で使うこと）\n' + montessoriText + '\n' : ''}
 
 法令・通知・行政資料の扱い：
 A. 必ず最新のものを参照すること。原則として、現行版であるもの、または直近2年以内に発出・改定されたものに限ること。それより古い資料しか分からない場合は、その旨と「最新版をご確認ください」を明記すること
@@ -3631,6 +3655,10 @@ E. こども性暴力防止法（日本版DBS、2026年12月25日施行）と「
   - 「不適切な行為」の具体例（私的なコミュニケーション・面会・送迎／撮影／密室／身体接触／排せつ介助等／更衣／特別扱い／その他）は国のガイドラインの例示です。説明するときは必ず「国のガイドラインの例です。事業者や子どもの年齢・状況によって判断が変わり、一律に不適切とされるものではありません」と添えること
   - 未就学児を膝に乗せる・おんぶする等は、業務として行い得るとガイドラインに注記があることも正しく伝え、職員を過度に萎縮させない書き方にすること
   - ${org.orgName}としての「不適切な行為」の基準・対応手順は現在作成中です。general の中で「${org.orgName}としての基準は現在作成中です。判断に迷う場合や気になる行為を見かけた場合は、園長・本部に相談してください」と案内すること
+F. モンテッソーリ教育について：
+  - 【モンテッソーリ教育の参考資料】がある場合はそれを主な根拠にし、② general に書くこと（① corp には書かないこと）
+  - ${org.orgName}や当園がモンテッソーリ教育を採用している・していないと断定しないこと。園としての取り入れ方は「園長にご確認ください」と添えること
+  - 敏感期などの年齢は目安で個人差が大きいこと、発達の心配は園長・専門機関に相談することを必要に応じて添えること
 D. Web検索が使える場合は、こども家庭庁・厚生労働省・文部科学省・e-Gov法令検索などの公式サイトで最新情報を確認すること
 
 回答ルール：
