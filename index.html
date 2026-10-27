@@ -2966,7 +2966,8 @@ const DASH_CMAP_URL = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/';
 const DASH_FOLDER_ALIAS = { shokibo: 'shokibo_ninka', fureai_moriya: 'fureai_shiodome' };
 const DASH_RE_IKUJI = /育児|介護|育休|産休|産前|産後|看護休暇|短時間勤務|妊娠|出産|子の看護/;
 const DASH_RE_BOUSAI = /BCP|ＢＣＰ|業務継続|防災|防犯|災害|避難|地震|台風|水害|洪水|火災|停電|不審者|安否/;
-const DASH_RE_SEIBOURYOKU = /性暴力|日本版DBS|ＤＢＳ|DBS|性犯罪|犯罪事実確認/;
+// こども性暴力防止法の資料（国の資料。「不適切な行為」の具体例一覧＝43〜44ページを含む）を読むきっかけの言葉（2026-10-27 拡充）
+const DASH_RE_SEIBOURYOKU = /性暴力|日本版DBS|ＤＢＳ|DBS|性犯罪|犯罪事実確認|特定性犯罪|前科|不適切な行為|不適切行為|わいせつ|猥褻|盗撮|性的|手なずけ|グルーミング|私物.{0,6}(スマホ|スマートフォン|携帯|カメラ)|(スマホ|スマートフォン|携帯).{0,8}(撮影|写真|動画)|膝に乗せ|ひざに乗せ|膝の上|ひざの上|おんぶ|抱きしめ|添い寝|おむつ交換|オムツ交換|おむつ替え|オムツ替え|排せつ介助|排泄介助|トイレ介助|二人きり|2人きり|ふたりきり|密室|更衣|着替え|私的な連絡|連絡先.{0,4}交換|LINE.{0,4}交換|特別扱い|えこひいき/;
 
 function dashFolder() {
   const f = garden.docsFolder || DASH_FOLDER_ALIAS[enKey] || enKey;
@@ -3061,17 +3062,23 @@ async function dashboardDocsBlock(q, botText) {
     if (k === 'other') return !!emp;
     return false; // kasuhara・houjin
   });
-  if (!want.length) return '';
+  if (!want.length) return { corp: '', ref: '' };
   const texts = await Promise.all(want.map(d => dashPdfText(d.file)));
   const parts = [];
+  const refParts = []; // 国の資料（こども性暴力防止法）：法人の規程ではないので②の参考資料として渡す
   want.forEach((d, i) => {
     const t = texts[i] || '';
     if (dashNorm(t).length < 300) { console.log('文字を取り出せないPDF（画像のPDF）のため、ボット用テキストを使います:', d.file); return; }
     if (dashCoveredBy(t, botText)) { console.log('ボット用テキストに収録済みのため重ねて読みません:', d.file); return; }
+    if (dashDocKind(d.file) === 'seibouryoku') {
+      refParts.push('【' + d.title + '（こども家庭庁の資料。法人の規程ではありません）】\n' + t);
+      console.log('国の参考資料を参照:', d.file, t.length, '文字');
+      return;
+    }
     parts.push('【' + d.title + '（職員ダッシュボード「規約・マニュアル」掲載）】\n' + t);
     console.log('職員ダッシュボードの規程を参照:', d.file, t.length, '文字');
   });
-  return parts.join('\n\n');
+  return { corp: parts.join('\n\n'), ref: refParts.join('\n\n') };
 }
 
 function showDeptChoice(originalQuestion) {
@@ -3573,8 +3580,12 @@ async function send(forcedQuestion, skipDeptCheck) {
   }
 
   // ボットにない規程は職員ダッシュボードのPDFを確認して足す（2026-10）
-  let dashText = '';
-  try { dashText = await dashboardDocsBlock(q, kisokuText); } catch (e) { console.warn('職員ダッシュボードの規程の参照に失敗:', e); }
+  let dashText = '', refText = '';
+  try {
+    const dash = await dashboardDocsBlock(q, kisokuText);
+    dashText = (dash && dash.corp) || '';
+    refText = (dash && dash.ref) || '';
+  } catch (e) { console.warn('職員ダッシュボードの規程の参照に失敗:', e); }
   if (dashText) {
     // 「給与規程は未受領」などの古い注記が残っていると、AIが「未収録」と答えてしまうため外す
     kisokuText = String(kisokuText || '').replace(/^※.*未受領.*$/gm, '');
@@ -3609,11 +3620,17 @@ ${corpBlock || '（今回の質問で参照できる規程・マニュアルは�
 
 【一般知識データベース】（${org.orgName}の規程ではなく、一般的な参考情報）
 ${KNOWLEDGE}
+${refText ? '\n【国の参考資料】（' + org.orgName + 'の規程ではありません。② general で使うこと）\n' + refText + '\n' : ''}
 
 法令・通知・行政資料の扱い：
 A. 必ず最新のものを参照すること。原則として、現行版であるもの、または直近2年以内に発出・改定されたものに限ること。それより古い資料しか分からない場合は、その旨と「最新版をご確認ください」を明記すること
 B. 保育所・認定こども園・子ども・子育て支援制度は、2023年4月からこども家庭庁の所管です。まずこども家庭庁の資料を参照し、「内閣府・文部科学省・厚生労働省」連名の古い通知は根拠に使わないこと
 C. 処遇改善等加算は、令和7年度から加算Ⅰ・Ⅱ・Ⅲが一本化され「区分1（基礎分）」「区分2（賃金改善分）」「区分3（質の向上分）」になっています。「処遇改善等加算Ⅰ・Ⅱ・Ⅲ」という旧名称で説明しないこと（旧制度との対応を説明する場合を除く）。根拠はこども家庭庁「令和７年度以降の処遇改善等加算について」。毎年度見直しがあるため、最新年度の通知と自治体の案内を確認するよう添えること
+E. こども性暴力防止法（日本版DBS、2026年12月25日施行）と「不適切な行為」について：
+  - 【国の参考資料】がある場合はそれを最優先の根拠にし、② general に書くこと（① corp には書かないこと）。根拠は こども家庭庁「こども性暴力防止法の施行について」とすること
+  - 「不適切な行為」の具体例（私的なコミュニケーション・面会・送迎／撮影／密室／身体接触／排せつ介助等／更衣／特別扱い／その他）は国のガイドラインの例示です。説明するときは必ず「国のガイドラインの例です。事業者や子どもの年齢・状況によって判断が変わり、一律に不適切とされるものではありません」と添えること
+  - 未就学児を膝に乗せる・おんぶする等は、業務として行い得るとガイドラインに注記があることも正しく伝え、職員を過度に萎縮させない書き方にすること
+  - ${org.orgName}としての「不適切な行為」の基準・対応手順は現在作成中です。general の中で「${org.orgName}としての基準は現在作成中です。判断に迷う場合や気になる行為を見かけた場合は、園長・本部に相談してください」と案内すること
 D. Web検索が使える場合は、こども家庭庁・厚生労働省・文部科学省・e-Gov法令検索などの公式サイトで最新情報を確認すること
 
 回答ルール：
