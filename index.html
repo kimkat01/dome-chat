@@ -2966,7 +2966,7 @@ async function fetchIkujiTanto() {
 }
 
 function isKisokuQuestion(q) {
-  return /就業規則|給与規程|給与規則|給与規定|規程|規則|労働条件|休暇|有給|有休|時間休|残業|賞与|ボーナス|退職|懲戒|育児休業|介護休業|育休|産休|経理規程|忌引|慶弔|特別休暇|給与|給料|手当|通勤|処遇改善|昇給|休職|復職|定年|試用期間|勤務時間|労働時間|休日|振替|代休|欠勤|遅刻|早退|健康診断|社会保険|控除|私学共済|ハラスメント|パワハラ|セクハラ|服務|異動|雇用契約|契約更新|無期転換/.test(q);
+  return /就業規則|給与規程|給与規則|給与規定|規程|規則|労働条件|休暇|有給|有休|時間休|残業|賞与|ボーナス|退職|懲戒|育児休業|介護休業|育休|産休|経理規程|忌引|慶弔|特別休暇|給与|給料|手当|通勤|交通費|交通|ガソリン|燃料|マイカー|自家用車|車通勤|自転車通勤|定期代|駐車|出張|旅費|処遇改善|昇給|休職|復職|定年|試用期間|勤務時間|労働時間|休日|振替|代休|欠勤|遅刻|早退|健康診断|社会保険|控除|私学共済|ハラスメント|パワハラ|セクハラ|服務|異動|雇用契約|契約更新|無期転換/.test(q);
 }
 
 async function fetchDeptKisoku(deptName) {
@@ -3383,7 +3383,8 @@ function parseBotReply(raw) {
           const tail = t.slice(b + 1).replace(/^[\s"}\]]+|[\s"}\]]+$/g, '').trim();
           if (tail && general.indexOf(tail) < 0) general = general + '\n\n' + tail;
           return { corp: cleanAnswer(pickStr(o, 'corp')), general: cleanAnswer(general),
-                   citations: Array.isArray(o.citations) ? o.citations : [] };
+                   citations: Array.isArray(o.citations) ? o.citations.map(c => (c && typeof c === 'object')
+                     ? Object.assign({}, c, { text: stripCiteTags(c.text), source: stripCiteTags(c.source) }) : c) : [] };
         }
       } catch (e) {}
       b = t.lastIndexOf('}', b - 1); tries++;
@@ -3436,8 +3437,12 @@ function citationLink(c) {
 }
 
 // 回答文から Markdown の記号（** や ### や ---）を取り除いて読みやすくする
+// Web検索の引用タグ（<cite index="2-3">…</cite>）が回答本文に残ることがあるため、タグだけ消して中の文は残す（2026-11）
+function stripCiteTags(s) {
+  return String(s || '').replace(/<\/?\s*cite\b[^>]*>/gi, '').replace(/&lt;\/?\s*cite\b.*?&gt;/gi, '');
+}
 function cleanAnswer(s) {
-  return String(s || '')
+  return stripCiteTags(s)
     .replace(/\*\*(.+?)\*\*/g, '$1')
     .replace(/\*\*/g, '')
     .replace(/^\s*#{1,6}\s*/gm, '')
@@ -3654,6 +3659,7 @@ async function send(forcedQuestion, skipDeptCheck) {
   - 下の【${org.orgName}の規程・マニュアル】に書かれている内容だけを使うこと
   - 規程・マニュアルに該当する定めがない場合は、corp は空文字 "" にすること（推測で書かないこと）
   - 規程・マニュアルに定めがあるのに一般論だけで答えないこと（特別休暇・忌引、手当、退職金、時間単位の有給などは必ず規程を確認すること）
+  - 「交通費」は規程では「通勤手当」と書かれていることが多い。交通費・ガソリン代・車通勤などを聞かれたら、通勤手当の条文を探して corp に書くこと
   - 「職員ダッシュボード『規約・マニュアル』掲載」と書かれた規程も${org.orgName}の正式な規程として扱うこと
   - パートタイム職員の給与は、パートタイム職員就業規則の中の給与の章（給与構成〜賞与・退職金）に定められている。パートの給与・給与規程を聞かれたら、そこから答えること
   - 質問者が正規職員かパートタイム職員か分からず、両者で規程が違う場合は、両方を分けて示すこと
@@ -3698,6 +3704,7 @@ D. Web検索が使える場合は、こども家庭庁・厚生労働省・文�
 4-2. 回答本文に Markdown 記号（** や ### や ---）は使わないこと。見出しは「■」や「1.」で表すこと
 5. general の末尾に「詳しくは必ず法人（本部）にご確認ください。」と付加すること。ただし、就業規則・給与規程の条文内容を単純に確認・説明するだけの質問（例：「〇〇手当の金額は？」「年次有給休暇の付与日数は？」など）には付けないこと。
 6. citations の kind は、${org.orgName}の規程・マニュアルなら "corp"、それ以外は "general" とすること。url は、Web検索で実際に開いた公式ページのURLか、こども家庭庁「令和７年度以降の処遇改善等加算について」（https://www.cfa.go.jp/assets/contents/node/basic_page/field_ref_resources/3a1576c7-071d-4325-8be8-edced6d12ee1/5fbbce07/20250613_policies_kokoseido_123.pdf%20.pdf）のみ記入し、それ以外は空文字にすること（URLを推測で作らないこと）
+6-2. 回答本文・citations に <cite> などのHTMLタグや引用番号を書かないこと
 7. 必ず以下のJSONのみで回答（前後にテキスト不可）：
 {"corp":"①の回答本文（なければ空文字。改行は\\nで表現）","general":"②の回答本文（改行は\\nで表現）","citations":[{"kind":"corp または general","text":"根拠・参考となる内容","source":"参照元（例：就業規則 第〇条／こども家庭庁「〇〇」（令和〇年〇月））","url":""}]}`;
 
